@@ -1157,21 +1157,40 @@ function saveStateToRepositoryCache() {
             const el = db.elections.find(e => e.id === elId);
             const name = document.getElementById('adminCandName').value;
             const age = parseInt(document.getElementById('adminCandAge').value);
-            const party = document.getElementById('adminCandParty').value;
+            const party = document.getElementById('adminCandParty').value.toUpperCase();
             const bPlace = document.getElementById('adminCandBirthPlace').value;
+            const imgUrl = document.getElementById('adminCandImage').value; // Captures the image input string!
 
-            if(!name || !age) return alert("Complete parameter matrices fields validation nodes.");
+            if(!name || !age || !party) return alert("Complete parameter matrices fields validation nodes.");
             
-            // Validate unique party lock structure requirements
-            if(el.candidates.some(c => c.party === party)) return alert("Specified organizational party anchor vector blocked by current configuration parameters.");
+            // CHECK IF THE CANDIDATE ALREADY EXISTS
+            let existingCand = el.candidates.find(c => c.party === party);
 
-            let cIndex = String(el.candidates.length + 1).padStart(3, '0');
-            let candId = `${cIndex}${elId}`;
+            if (existingCand) {
+                // UPDATE THE EXISTING CANDIDATE DATA INSTEAD OF BLOCKING
+                existingCand.name = name;
+                existingCand.age = age;
+                existingCand.birthPlace = bPlace;
+                if (imgUrl) existingCand.image = imgUrl; // Locks in your avatar path!
+                alert(`Updated candidate parameters for existing party: ${party}`);
+            } else {
+                // CREATE NEW CANDIDATE IF THEY DON'T EXIST
+                let cIndex = String(el.candidates.length + 1).padStart(3, '0');
+                let candId = `${cIndex}${elId}`;
+                el.candidates.push({ id: candId, name: name, party: party, age: age, birthPlace: bPlace, votes: {}, growth: 0.0, image: imgUrl });
+                alert(`Operational Vector Channel deployed for new candidate: ${name}`);
+            }
 
-            el.candidates.push({ id: candId, name: name, party: party, age: age, birthPlace: bPlace, votes: {}, growth: 0.0, image: "" });
-            saveStateToRepositoryCache(); renderAdminCandidateRosterList(elId);
+            saveStateToRepositoryCache(); 
+            renderAdminCandidateRosterList(elId);
+            compileElectionDashboardCalculations();
+
             // Reset input values
-            document.getElementById('adminCandName').value = ''; document.getElementById('adminCandAge').value = '';
+            document.getElementById('adminCandName').value = ''; 
+            document.getElementById('adminCandAge').value = '';
+            document.getElementById('adminCandParty').value = '';
+            document.getElementById('adminCandBirthPlace').value = '';
+            document.getElementById('adminCandImage').value = '';
         });
 
         // ================= VOTE ENTRY STATION ENGINE HOOKS =================
