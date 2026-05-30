@@ -1327,6 +1327,35 @@ function saveStateToRepositoryCache() {
                 });
         }
 
+        document.getElementById('voteMgmtCountySelector').addEventListener('change', updateLiveStationFillingMetric);
+
+function updateLiveStationFillingMetric() {
+    const elId = document.getElementById('adminActiveElectionSelector').value;
+    const el = db.elections.find(e => e.id === elId);
+    const countyId = document.getElementById('voteMgmtCountySelector').value;
+    const coProfile = db.counties.find(c => c.id === countyId);
+    
+    if (!el || !coProfile) return;
+
+    let totalCast = 0;
+    el.candidates.forEach(c => {
+        totalCast += (c.votes[countyId] || 0);
+    });
+    totalCast += (el.spoiltVotes[countyId] || 0);
+
+    let pct = (totalCast / coProfile.registered_voters) * 100;
+    
+    const pctText = document.getElementById('voteMgmtProgressPctText');
+    pctText.textContent = `${pct.toFixed(2)}% (${totalCast.toLocaleString()} / ${coProfile.registered_voters.toLocaleString()})`;
+    
+    if (pct >= 100) {
+        pctText.className = "text-sm font-black font-mono text-emerald-400";
+    } else {
+        pctText.className = "text-sm font-black font-mono text-amber-400";
+    }
+}
+
+
         // START EXECUTION ON INITIALIZATION SEED PIPELINES
         initializeCoreRepositoryEngine();
         loadAsynchronousResourceFiles();
