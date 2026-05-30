@@ -1,0 +1,1311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orish Council of Elections - Commonwealth Matrix</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=Oswald:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .oswald { font-family: 'Oswald', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        .winner-glow { filter: drop-shadow(0px 0px 8px currentColor); }
+        .disabled-input { background-color: #1e293b !important; opacity: 0.6; cursor: not-allowed; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 h-screen flex flex-col md:flex-row overflow-hidden select-none">
+
+    <aside class="w-full md:w-64 bg-slate-900 border-b md:border-b-0 md:border-r border-slate-800 flex flex-col justify-between p-4 z-30 shadow-2xl shrink-0">
+        <div class="flex flex-col gap-6">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-amber-500 rounded flex items-center justify-center font-black text-slate-950 text-xl tracking-tighter shadow-lg shadow-amber-500/20">OCE</div>
+                <div>
+                    <h1 class="text-xs font-black tracking-wider text-amber-400 uppercase">Orish Council</h1>
+                    <p class="text-[10px] text-slate-400 tracking-tight font-semibold">Election Intelligence Hub</p>
+                </div>
+            </div>
+
+            <nav class="flex flex-col gap-1 text-xs font-bold">
+                <button id="navHomeBtn" class="flex items-center gap-2.5 px-3 py-2 rounded bg-amber-600 text-white transition align-middle">🏛️ Dashboard Mainframe</button>
+                <button id="navAdminBtn" class="flex items-center gap-2.5 px-3 py-2 rounded text-slate-400 hover:bg-slate-800 hover:text-white transition align-middle">⚙️ Control Administration</button>
+                <button id="navDemographicsBtn" class="flex items-center gap-2.5 px-3 py-2 rounded text-slate-400 hover:bg-slate-800 hover:text-white transition align-middle">📊 Commonwealth Demographics</button>
+            </nav>
+        </div>
+
+        <div class="border-t border-slate-800/80 pt-3 mt-auto">
+            <div class="flex justify-between items-center text-[10px] text-slate-500 font-mono">
+                <span>System Pipeline Status:</span>
+                <span id="saveStatus" class="text-emerald-400 font-bold">Online</span>
+            </div>
+            <div class="text-[9px] text-slate-500 italic mt-1">Commonwealth of Orland Sovereign Platform v9.4</div>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-full overflow-hidden relative bg-slate-950">
+        
+        <section id="panelHome" class="flex-1 flex flex-col p-6 overflow-y-auto gap-6 transition-all">
+            <div>
+                <h2 class="text-xl font-black text-slate-100 uppercase tracking-tight">Active Matrix Pipelines</h2>
+                <p class="text-xs text-slate-400">Select an execution frame below to compile state territorial metrics</p>
+            </div>
+            
+            <div id="electionsListGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                </div>
+        </section>
+
+        <section id="panelReportingWindow" class="flex-1 flex flex-col overflow-hidden hidden transition-all">
+            <div class="bg-slate-900 border-b border-slate-800 p-4 flex justify-between items-center z-10 shrink-0">
+                <div class="flex items-center gap-3">
+                    <button id="closeReportingWindowBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded text-xs font-bold transition">← Back</button>
+                    <div>
+                        <h2 id="reportingElectionTitle" class="text-sm font-black tracking-tight uppercase text-amber-400">Election Frame</h2>
+                        <p id="reportingElectionMeta" class="text-[10px] text-slate-400 font-mono">ID: ORSN001</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4 bg-slate-950 px-4 py-1.5 rounded-lg border border-slate-800">
+                    <div class="text-center">
+                        <div class="text-[9px] font-bold text-slate-500 uppercase">National Progress</div>
+                        <div id="nationalReportingProgressText" class="text-sm font-black font-mono text-emerald-400">0.0%</div>
+                    </div>
+                    <div class="w-24 bg-slate-800 h-2 rounded-full overflow-hidden">
+                        <div id="nationalReportingProgressBar" class="bg-emerald-500 h-full" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
+                <div class="w-full md:w-[480px] border-r border-slate-800 flex flex-col h-full bg-slate-900/40 overflow-y-auto p-4 gap-4">
+                    
+                    <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 flex flex-col gap-2">
+                        <h3 class="text-xs font-black uppercase tracking-wider text-slate-400">Composition Vector Breakdown</h3>
+                        <div class="h-44 w-full flex items-center justify-center relative">
+                            <svg id="pieChartCanvas" class="w-full h-full"></svg>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-2">
+                        <h3 class="text-xs font-black uppercase tracking-wider text-slate-400">Candidates Vector Registry (Descending Ledger)</h3>
+                        <div id="reportingCandidatesList" class="flex flex-col gap-2">
+                            </div>
+                    </div>
+
+                    <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 flex flex-col gap-3">
+                        <h3 class="text-xs font-black uppercase tracking-wider text-slate-400">Cross-Territorial Analysis Matrix</h3>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button id="toggleViewStateVotesBtn" class="bg-amber-600 text-white font-bold text-xs py-1.5 rounded transition">View State Vectors</button>
+                            <button id="toggleViewCountyVotesBtn" class="bg-slate-800 text-slate-300 font-bold text-xs py-1.5 rounded transition hover:bg-slate-700">View County Slices</button>
+                        </div>
+
+                        <div class="overflow-x-auto max-h-56 bg-slate-950 rounded border border-slate-800">
+                            <table class="w-full text-left border-collapse text-[10px] font-mono">
+                                <thead id="crossMatrixTableHeader" class="bg-slate-900 text-slate-400 sticky top-0">
+                                    </thead>
+                                <tbody id="crossMatrixTableBody" class="divide-y divide-slate-900">
+                                    </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex-1 flex flex-col overflow-hidden p-4 gap-4">
+                    <div class="bg-slate-900 rounded-xl border border-slate-800 flex-1 flex flex-col overflow-hidden relative">
+                        <div class="absolute top-3 left-3 flex gap-2 z-20 bg-slate-950/90 p-1.5 rounded-lg border border-slate-800">
+                            <button id="mapToggleStateBtn" class="bg-amber-600 text-white font-black text-[10px] uppercase px-3 py-1 rounded transition">State Layers</button>
+                            <button id="mapToggleCountyBtn" class="bg-slate-800 text-slate-400 font-black text-[10px] uppercase px-3 py-1 rounded transition hover:bg-slate-700">County Boundaries</button>
+                            <button id="mapToggleLabelsBtn" class="bg-slate-900 border border-slate-700 text-slate-300 font-black text-[10px] uppercase px-2 py-1 rounded transition hover:bg-slate-800">Labels: Off</button>
+                        </div>
+
+                        <div id="mapReportingContainer" class="flex-1 w-full bg-white relative flex items-center justify-center">
+                            <svg id="reportingMapCanvas" class="w-full h-full text-slate-900 select-none"></svg>
+                            
+                            <div id="manualAlignmentAlertBox" class="absolute bottom-3 right-3 bg-slate-950/95 border border-rose-900/60 p-2.5 rounded-xl text-xs max-w-sm hidden flex flex-col gap-1.5 z-20 text-slate-300 shadow-2xl">
+                                <div class="font-black text-rose-400 uppercase text-[10px] tracking-wide flex items-center gap-1">⚠️ Boundary Alignment Ledger Misalignment</div>
+                                <div class="text-[11px] leading-tight text-slate-400">Some entities between the profile metrics array database and GeoJSON vector canvas profiles failed alignment. Fix required below.</div>
+                                <button id="openAlignmentWizardBtn" class="w-full bg-rose-950/60 hover:bg-rose-900/80 text-rose-400 border border-rose-800 px-2 py-1 rounded text-[10px] font-mono transition">Initialize Manual Resolution Hub</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="panelCandidateProfile" class="flex-1 flex flex-col overflow-hidden hidden transition-all">
+            <div class="bg-slate-900 border-b border-slate-800 p-4 flex justify-between items-center shrink-0">
+                <button id="closeCandidateProfileBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1 rounded text-xs font-bold transition">← Return to Election</button>
+                <h2 class="text-sm font-black text-amber-400 uppercase tracking-wider">Candidate Demographic Matrix Analytics</h2>
+            </div>
+            
+            <div class="flex-1 flex flex-col md:flex-row overflow-hidden p-4 gap-4">
+                <div class="w-full md:w-80 flex flex-col gap-4 overflow-y-auto shrink-0">
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col items-center text-center gap-3">
+                        <img id="candProfileAvatar" class="w-24 h-24 rounded-full object-cover border-4 border-slate-800 bg-slate-950" src="" alt="Candidate Avatar">
+                        <div>
+                            <h3 id="candProfileName" class="text-lg font-black text-slate-100 tracking-tight">Candidate Name</h3>
+                            <span id="candProfilePartyBadge" class="px-2 py-0.5 rounded text-[10px] uppercase font-mono font-bold tracking-wider">PARTY</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 text-left w-full text-xs border-t border-slate-800 pt-3">
+                            <div><span class="text-slate-500 block text-[10px]">Age Range</span><b id="candProfileAge">00</b></div>
+                            <div><span class="text-slate-500 block text-[10px]">Birth Province</span><b id="candProfileBirthPlace">Unknown</b></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl flex-1 flex flex-col gap-2 overflow-hidden">
+                        <h4 class="text-xs font-black uppercase text-slate-400">Territorial Concentration Ledger</h4>
+                        <div class="flex gap-1 p-1 bg-slate-950 rounded border border-slate-800 text-[10px] font-bold">
+                            <button id="candProfileToggleStateBtn" class="flex-1 bg-amber-600 text-white rounded py-0.5 transition">States View</button>
+                            <button id="candProfileToggleCountyBtn" class="flex-1 text-slate-400 py-0.5 rounded transition">Counties View</button>
+                        </div>
+                        <div class="flex-1 overflow-y-auto rounded bg-slate-950 border border-slate-800">
+                            <table class="w-full text-left text-[11px] font-mono">
+                                <thead class="bg-slate-900 text-slate-500 sticky top-0 text-[9px] uppercase">
+                                    <tr><th class="p-1">Territory</th><th class="p-1">Votes</th><th class="p-1">Share</th><th class="p-1 text-right">Tier</th></tr>
+                                </thead>
+                                <tbody id="candProfileTableBody" class="divide-y divide-slate-900">
+                                    </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex-1 bg-slate-900 border border-slate-800 rounded-xl flex flex-col overflow-hidden relative">
+                    <div class="absolute top-3 left-3 z-20 flex gap-2 bg-slate-950 p-1.5 rounded-lg border border-slate-800 text-[10px] uppercase font-bold">
+                        <button id="candMapToggleState" class="bg-amber-600 text-white px-2 py-0.5 rounded">State Spectrum</button>
+                        <button id="candMapToggleCounty" class="bg-slate-800 text-slate-400 px-2 py-0.5 rounded hover:bg-slate-700">County Spectrum</button>
+                    </div>
+                    
+                    <div id="candProfileMapContainer" class="flex-1 w-full bg-white flex items-center justify-center">
+                        <svg id="candProfileMapCanvas" class="w-full h-full text-slate-900 select-none"></svg>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="panelTerritoryProfile" class="flex-1 flex flex-col overflow-hidden hidden transition-all">
+            <div class="bg-slate-900 border-b border-slate-800 p-4 flex justify-between items-center shrink-0">
+                <button id="closeTerritoryProfileBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1 rounded text-xs font-bold transition">← Return to Suite</button>
+                <div>
+                    <h2 id="territoryProfileTitle" class="text-base font-black text-amber-400 uppercase tracking-tight">State Profile Matrix</h2>
+                    <p id="territoryProfileRegion" class="text-[10px] text-slate-400 font-mono uppercase">Region: Unknown</p>
+                </div>
+            </div>
+
+            <div class="flex-1 flex flex-col md:flex-row overflow-hidden p-4 gap-4">
+                <div class="w-full md:w-80 flex flex-col gap-4 overflow-y-auto shrink-0">
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col gap-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-14 h-9 bg-slate-950 rounded border border-slate-700 flex items-center justify-center text-xs text-slate-600 font-bold font-mono">FLAG</div>
+                            <div>
+                                <h4 class="text-[10px] text-slate-500 uppercase font-bold">Voters Core Population</h4>
+                                <div id="territoryProfileRegistered" class="text-base font-black font-mono text-slate-200">000,000</div>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 border-t border-slate-800 pt-3 text-xs">
+                            <div><span class="text-slate-500 block text-[9px] uppercase font-bold">Turnout Pool</span><b id="territoryProfileTurnout">0.0%</b></div>
+                            <div><span class="text-slate-500 block text-[9px] uppercase font-bold">Spoilt Vectors</span><b id="territoryProfileSpoilt">000</b></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl flex-1 flex flex-col gap-2 overflow-hidden">
+                        <h4 class="text-xs font-black uppercase text-slate-400">Localized Preference Distribution</h4>
+                        <div class="flex-1 overflow-y-auto rounded bg-slate-950 border border-slate-800">
+                            <table class="w-full text-left text-[11px] font-mono">
+                                <thead class="bg-slate-900 text-slate-500 sticky top-0 text-[9px] uppercase">
+                                    <tr><th class="p-1">Candidate</th><th class="p-1">Votes</th><th class="p-1">Share</th><th class="p-1 text-right">Trend</th></tr>
+                                </thead>
+                                <tbody id="territoryProfileCandidatesTableBody" class="divide-y divide-slate-900">
+                                    </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex-1 flex flex-col gap-4 overflow-hidden">
+                    <div class="bg-slate-900 border border-slate-800 rounded-xl flex-[2] flex flex-col overflow-hidden relative">
+                        <div id="territoryMapContainer" class="w-full h-full bg-white flex items-center justify-center">
+                            <svg id="territoryMapCanvas" class="w-full h-full text-slate-900 select-none"></svg>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900 border border-slate-800 rounded-xl flex-1 flex flex-col p-3 overflow-hidden">
+                        <h4 class="text-xs font-black uppercase text-slate-400 mb-2">Sub-Territorial Breakdown Matrix</h4>
+                        <div class="flex-1 overflow-auto bg-slate-950 rounded border border-slate-800">
+                            <table class="w-full text-left border-collapse text-[10px] font-mono">
+                                <thead id="territorySubMatrixHeader" class="bg-slate-900 text-slate-500 sticky top-0 text-[9px] uppercase">
+                                    </thead>
+                                <tbody id="territorySubMatrixBody" class="divide-y divide-slate-900">
+                                    </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="panelAdmin" class="flex-1 flex flex-col p-6 overflow-y-auto gap-6 hidden transition-all">
+            <div>
+                <h2 class="text-xl font-black text-slate-100 uppercase tracking-tight">System Control Administration</h2>
+                <p class="text-xs text-slate-400">Deploy structural changes, modify parameters, and capture demographic indexes</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col gap-4 shadow-xl">
+                    <h3 class="text-xs font-black uppercase tracking-wider text-amber-400">Initialize Election Event Pipeline</h3>
+                    
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-[10px] text-slate-400 font-bold uppercase">Territorial Jurisdiction Scope</label>
+                        <select id="adminElectionScope" class="w-full bg-slate-950 border border-slate-700 rounded p-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500">
+                            <option value="national">National Executive Presidency</option>
+                            <option value="state">State Assembly Gubernatorial</option>
+                        </select>
+                    </div>
+
+                    <div id="adminScopeStateSelectWrapper" class="flex flex-col gap-1.5 hidden">
+                        <label class="text-[10px] text-slate-400 font-bold uppercase">Target State Slice Assignment</label>
+                        <select id="adminElectionStateTarget" class="w-full bg-slate-950 border border-slate-700 rounded p-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500">
+                            </select>
+                    </div>
+
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-[10px] text-slate-400 font-bold uppercase">Election Operational Name</label>
+                        <input type="text" id="adminElectionName" placeholder="e.g. 2026 Orland Presidential Decree" class="w-full bg-slate-950 border border-slate-700 rounded p-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500">
+                    </div>
+
+                    <button id="adminSaveElectionBtn" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs py-2 rounded tracking-wider uppercase transition">Deploy Election Event Channel</button>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col gap-4 shadow-xl lg:col-span-2">
+                    <h3 class="text-xs font-black uppercase tracking-wider text-amber-400">Event Infrastructure & Live Candidate Rosters</h3>
+                    <div class="flex gap-2">
+                        <select id="adminActiveElectionSelector" class="flex-1 bg-slate-950 border border-slate-700 rounded p-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500">
+                            <option value="">-- Choose Active Event Pipeline --</option>
+                        </select>
+                    </div>
+
+                    <div id="adminCandidateControlPanel" class="hidden border-t border-slate-800 pt-4 flex flex-col gap-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="bg-slate-950 border border-slate-800 p-3 rounded-lg flex flex-col gap-3">
+                                <h4 class="text-[10px] uppercase font-black text-slate-400">Candidate Profiler Parameters</h4>
+                                <input type="hidden" id="adminCandId">
+                                <div class="grid grid-cols-2 gap-2">
+                                    <input type="text" id="adminCandName" placeholder="Full Name" class="bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-slate-200">
+                                    <input type="number" id="adminCandAge" placeholder="Age" class="bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-slate-200">
+                                </div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <select id="adminCandParty" class="bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-slate-200">
+                                        <option value="IDP">IDP (Imperial Democratic Party)</option>
+                                        <option value="UCP">UCP (United Commonwealth Party)</option>
+                                        <option value="NFP">NFP (National Freedom Party)</option>
+                                        <option value="ONP">ONP (Orland Nationalist Alliance)</option>
+                                    </select>
+                                    <input type="text" id="adminCandBirthPlace" placeholder="Birth Place State" class="bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-slate-200">
+                                </div>
+                                <input type="text" id="adminCandImage" placeholder="Avatar Photo URL (Optional)" class="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-slate-200">
+                                <div class="flex gap-2 mt-1">
+                                    <button id="adminSaveCandidateBtn" class="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs py-1.5 rounded transition">Commit Candidate</button>
+                                    <button id="adminClearCandidateFormBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs px-3 rounded transition">Clear</button>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col gap-2">
+                                <h4 class="text-[10px] uppercase font-black text-slate-400">Deployed Candidate Cluster</h4>
+                                <div id="adminCandidateRosterContainer" class="max-h-48 overflow-y-auto flex flex-col gap-2 pr-1">
+                                    </div>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-slate-800 pt-4 flex flex-col gap-3 bg-slate-950/40 p-3 rounded-lg border border-slate-800">
+                            <h3 class="text-xs font-black uppercase tracking-wider text-amber-500">📥 Ballots & Real-Time Vote Management Deck</h3>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-[9px] text-slate-500 uppercase font-bold mb-0.5">Filter State Matrix</label>
+                                    <select id="voteMgmtStateSelector" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 text-xs text-slate-200 focus:outline-none"></select>
+                                </div>
+                                <div>
+                                    <label class="block text-[9px] text-slate-500 uppercase font-bold mb-0.5">Target County Entry Station</label>
+                                    <select id="voteMgmtCountySelector" class="w-full bg-slate-950 border border-amber-500/40 rounded p-1.5 text-xs text-amber-300 focus:outline-none"></select>
+                                </div>
+                            </div>
+
+                            <div id="voteMgmtControlZone" class="hidden border-t border-slate-800/60 pt-3 flex flex-col gap-3">
+                                <div class="flex justify-between items-center bg-slate-900 p-2 rounded border border-slate-800 text-xs font-mono">
+                                    <div>Status: <span id="voteMgmtLockStatusText" class="font-bold text-emerald-400">OPEN</span></div>
+                                    <button id="voteMgmtManualCloseBtn" class="bg-rose-950 text-rose-400 border border-rose-800 px-2 py-0.5 rounded text-[10px] font-bold hover:bg-rose-900/60 transition">Manual Freeze Lock</button>
+                                </div>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="voteMgmtInputsGrid">
+                                    </div>
+
+                                <div class="flex items-center gap-3 bg-slate-900/60 p-2 rounded border border-slate-800/80">
+                                    <div class="w-1/2">
+                                        <label class="block text-[9px] text-rose-400 font-black uppercase">Spoilt/Invalid Ballots Increment</label>
+                                        <input type="number" id="voteMgmtSpoiltInput" value="0" class="w-full bg-slate-950 border border-rose-900/60 rounded p-1 text-xs text-rose-300 font-mono focus:outline-none">
+                                    </div>
+                                    <div class="w-1/2 text-right">
+                                        <div class="text-[9px] text-slate-500 font-bold uppercase">County Station Fill Metric</div>
+                                        <div id="voteMgmtProgressPctText" class="text-sm font-black font-mono text-amber-400">0.0%</div>
+                                    </div>
+                                </div>
+
+                                <button id="voteMgmtCommitChangesBtn" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs py-2 rounded tracking-wide uppercase shadow-lg transition">Append Certified Ballots Batch</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="panelDemographics" class="flex-1 flex flex-col p-6 overflow-y-auto gap-6 hidden transition-all">
+            <div>
+                <h2 class="text-xl font-black text-slate-100 uppercase tracking-tight">Demographic Core Matrices</h2>
+                <p class="text-xs text-slate-400">Total registered electorate data and census population tracking systems</p>
+            </div>
+
+            <div class="flex-1 flex flex-col lg:flex-row gap-6 overflow-hidden min-h-[500px]">
+                <div class="w-full lg:w-96 flex flex-col gap-4 overflow-hidden">
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl text-center shadow-xl">
+                        <div class="text-[10px] uppercase font-black text-slate-500">Total Consolidated Commonwealth Electorate</div>
+                        <div id="demoTotalVotersText" class="text-2xl font-black font-mono text-amber-400 mt-1">0,000,000</div>
+                    </div>
+
+                    <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl flex-1 flex flex-col overflow-hidden shadow-xl">
+                        <h3 class="text-xs font-black uppercase text-slate-400 mb-2">Registered Voters Population Ledger</h3>
+                        <div class="flex-1 overflow-y-auto rounded bg-slate-950 border border-slate-800">
+                            <table class="w-full text-left text-[11px] font-mono">
+                                <thead class="bg-slate-900 text-slate-500 sticky top-0 text-[9px] uppercase">
+                                    <tr><th class="p-1">State Assignment</th><th class="p-1 text-right">Registered Voters Pool</th></tr>
+                                </thead>
+                                <tbody id="demoTableBody" class="divide-y divide-slate-900">
+                                    </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex-1 bg-slate-900 border border-slate-800 rounded-xl flex flex-col overflow-hidden relative shadow-xl">
+                    <div class="absolute top-3 left-3 z-20 flex gap-2 bg-slate-950 p-1.5 rounded-lg border border-slate-800 text-[10px] font-bold uppercase">
+                        <button id="demoToggleStateBtn" class="bg-amber-600 text-white px-3 py-1 rounded transition">State Footprint</button>
+                        <button id="demoToggleCountyBtn" class="bg-slate-800 text-slate-400 px-3 py-1 rounded transition hover:bg-slate-700">County Footprint</button>
+                    </div>
+                    <div id="demoMapContainer" class="flex-1 w-full bg-white flex items-center justify-center">
+                        <svg id="demoMapCanvas" class="w-full h-full text-slate-900 select-none"></svg>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="alignmentWizardModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-lg p-5 flex flex-col gap-4 shadow-2xl max-h-[85vh]">
+            <div>
+                <h4 class="text-sm font-black text-amber-400 uppercase tracking-wider">Manual Boundary Synchronization Pipeline</h4>
+                <p class="text-[11px] text-slate-400">Map unmatched database profiles directly onto GeoJSON vector layers:</p>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-3 text-xs overflow-hidden">
+                <div class="flex flex-col gap-1.5 overflow-hidden">
+                    <span class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Unmatched Records Pool</span>
+                    <div id="wizardUnmatchedRecordsList" class="flex-1 overflow-y-auto border border-slate-800 bg-slate-950 rounded p-1.5 flex flex-col gap-1 max-h-[40vh] font-mono text-[11px]"></div>
+                </div>
+                <div class="flex flex-col gap-1.5 overflow-hidden">
+                    <span class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Available Vector Layers</span>
+                    <div id="wizardUnmatchedVectorsList" class="flex-1 overflow-y-auto border border-slate-800 bg-slate-950 rounded p-1.5 flex flex-col gap-1 max-h-[40vh] font-mono text-[11px]"></div>
+                </div>
+            </div>
+
+            <div class="bg-slate-950 p-2 rounded border border-slate-800 text-[11px] font-mono text-center flex justify-between items-center">
+                <div class="text-slate-400">Selected Path Linkage:</div>
+                <div id="wizardSelectedLinkageText" class="text-amber-400 font-bold">None Selected</div>
+            </div>
+
+            <div class="flex justify-end gap-2 text-xs font-bold">
+                <button id="closeWizardModalBtn" class="bg-slate-800 text-slate-400 hover:bg-slate-700 px-3 py-2 rounded transition">Discard</button>
+                <button id="commitWizardLinkageBtn" class="bg-emerald-700 text-white hover:bg-emerald-600 px-4 py-2 rounded shadow-lg transition">Bind Path Configuration</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // CLIENT MEMORY CONTROL BLOCK
+        let db = {
+            elections: [],
+            counties: [],
+            states: [],
+            unmatchedManualLinks: {} 
+        };
+
+        let currentActiveElectionId = null;
+        let selectedReportingTab = "state"; // Options: 'state' or 'county'
+        let selectedCandProfileTab = "state";
+        let isLabelsEnabled = false;
+
+        // RUNTIME GEOMETRIC VECTOR POOLS
+        let geoStatesJson = null;
+        let geoCountiesJson = null;
+
+        // PARTY STYLE AND HASH CORES MAP CONFIGS
+        const partyColors = {
+            IDP: "#1d4ed8", // Sapphire Imperial Blue
+            UCP: "#15803d", // Emerald Commonwealth Green
+            NFP: "#b91c1c", // Crimson Freedom Red
+            ONP: "#a16207"  // Ochre Alliance Gold
+        };
+
+        // CORE CACHE INITIALIZER BLOCK
+        function initializeCoreRepositoryEngine() {
+            const cache = localStorage.getItem('OCE_VOTE_REPOSITORY_CACHE_V9');
+            if(cache) {
+                try { db = JSON.parse(cache); } catch(e) { console.error("Cache serialization mismatch."); }
+            } else {
+                // SEEDING THE MOCK DATA TO POPULATE INTERFACE IMMEDIATELY
+                db.elections = [{
+                    id: "ORSN001", type: "national", name: "Commonwealth Executive Presidency Decree",
+                    candidates: [
+                        { id: "001ORSN001", name: "Chancellor Vaelen Austinas", party: "IDP", age: 54, birthPlace: "Austinas", votes: {}, growth: 1.2, image: "" },
+                        { id: "002ORSN001", name: "Archon Alyssa Orlay", party: "UCP", age: 48, birthPlace: "Orlay", votes: {}, growth: -0.4, image: "" }
+                    ],
+                    spoiltVotes: {}, frozenCounties: {}
+                }];
+            }
+            saveStateToRepositoryCache();
+        }
+
+        function saveStateToRepositoryCache() {
+            localStorage.setItem('OCE_VOTE_REPOSITORY_CACHE_V9', JSON.stringify(db));
+        }
+
+        // DOM ELEMENTS REFERENCE BANK
+        const viewPanels = {
+            home: document.getElementById('panelHome'),
+            reporting: document.getElementById('panelReportingWindow'),
+            candidate: document.getElementById('panelCandidateProfile'),
+            territory: document.getElementById('panelTerritoryProfile'),
+            admin: document.getElementById('panelAdmin'),
+            demographics: document.getElementById('panelDemographics')
+        };
+
+        function switchDisplayViewportPanel(activeKey) {
+            Object.keys(viewPanels).forEach(k => {
+                if(k === activeKey) viewPanels[k].classList.remove('hidden');
+                else viewPanels[k].classList.add('hidden');
+            });
+            // Synchronization UI nodes triggers
+            document.getElementById('navHomeBtn').className = (activeKey==='home'||activeKey==='reporting') ? "flex items-center gap-2.5 px-3 py-2 rounded bg-amber-600 text-white text-xs font-bold" : "flex items-center gap-2.5 px-3 py-2 rounded text-slate-400 hover:bg-slate-800 hover:text-white text-xs font-bold";
+            document.getElementById('navAdminBtn').className = (activeKey==='admin') ? "flex items-center gap-2.5 px-3 py-2 rounded bg-amber-600 text-white text-xs font-bold" : "flex items-center gap-2.5 px-3 py-2 rounded text-slate-400 hover:bg-slate-800 hover:text-white text-xs font-bold";
+            document.getElementById('navDemographicsBtn').className = (activeKey==='demographics') ? "flex items-center gap-2.5 px-3 py-2 rounded bg-amber-600 text-white text-xs font-bold" : "flex items-center gap-2.5 px-3 py-2 rounded text-slate-400 hover:bg-slate-800 hover:text-white text-xs font-bold";
+        }
+
+        // TRIGGER NAVIGATION SHORT CIRCUITS BOUND TO THE SIDEBAR
+        document.getElementById('navHomeBtn').addEventListener('click', () => switchDisplayViewportPanel('home'));
+        document.getElementById('navAdminBtn').addEventListener('click', () => { switchDisplayViewportPanel('admin'); syncAdminControlsComplex(); });
+        document.getElementById('navDemographicsBtn').addEventListener('click', () => { switchDisplayViewportPanel('demographics'); renderDemographicsMetricsWorkspace(); });
+        document.getElementById('closeReportingWindowBtn').addEventListener('click', () => switchDisplayViewportPanel('home'));
+
+        // FILE LOADING PIPELINES
+        async function loadAsynchronousResourceFiles() {
+            try {
+                // Fetch Core County Profiles JSON Database
+                const cRes = await fetch('COUNTY.json');
+                if(cRes.ok) {
+                    db.counties = await cRes.json();
+                    // Extract unique state names from the dataset setup
+                    let extractedStates = [...new Set(db.counties.map(c => c.state))].sort();
+                    db.states = extractedStates.map(st => {
+                        let totalVoters = db.counties.filter(c => c.state === st).reduce((acc, curr) => acc + curr.registered_voters, 0);
+                        return { name: st, region: db.counties.find(c => c.state === st).region, registered_voters: totalVoters };
+                    });
+                }
+            } catch(e) { console.error("Resource pipeline dynamic asset injection failure:", e); }
+
+            try {
+                const sGeo = await fetch('(A) ORLAND STATES .json');
+                if(sGeo.ok) geoStatesJson = await sGeo.json();
+            } catch(e) {}
+
+            try {
+                const cGeo = await fetch('(N) ORLAND 424 COUNTIES.geojson');
+                if(cGeo.ok) geoCountiesJson = await cGeo.json();
+            } catch(e) {}
+
+            renderElectionCardsGrid();
+        }
+
+        // ================= BUSINESS LOGIC: ELECTIONS RENDER HUB =================
+        function renderElectionCardsGrid() {
+            const grid = document.getElementById('electionsListGrid');
+            grid.innerHTML = '';
+            
+            db.elections.forEach(el => {
+                let card = document.createElement('div');
+                card.className = "bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col justify-between hover:border-amber-500/40 transition cursor-pointer gap-4 shadow-xl";
+                
+                // Statistical extraction compilation
+                let totalElectionBallots = 0;
+                el.candidates.forEach(c => {
+                    Object.values(c.votes).forEach(v => totalElectionBallots += v);
+                });
+
+                card.innerHTML = `
+                    <div class="flex flex-col gap-1">
+                        <span class="text-[9px] bg-slate-950 border border-slate-800 px-2 py-0.5 rounded text-slate-400 font-mono self-start uppercase font-bold">${el.type} JURISDICTION</span>
+                        <h3 class="text-sm font-black text-slate-100 uppercase tracking-tight">${el.name}</h3>
+                        <p class="text-[10px] text-slate-400 font-mono">Channel Core Signature ID: ${el.id}</p>
+                    </div>
+                    <div class="flex justify-between items-end border-t border-slate-800/60 pt-3">
+                        <div>
+                            <span class="text-[9px] text-slate-500 block uppercase font-bold">Total Ballots Cast</span>
+                            <b class="text-xs font-mono text-slate-300">${totalElectionBallots.toLocaleString()}</b>
+                        </div>
+                        <span class="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1">Access Deck →</span>
+                    </div>
+                `;
+                card.addEventListener('click', () => openElectionReportingDashboard(el.id));
+                grid.appendChild(card);
+            });
+        }
+
+        function openElectionReportingDashboard(electionId) {
+            currentActiveElectionId = electionId;
+            switchDisplayViewportPanel('reporting');
+            compileElectionDashboardCalculations();
+        }
+
+        // ================= CALCULATION AND ANALYSIS PIPELINE COMPILERS =================
+        function compileElectionDashboardCalculations() {
+            const el = db.elections.find(e => e.id === currentActiveElectionId);
+            if(!el) return;
+
+            document.getElementById('reportingElectionTitle').textContent = el.name;
+            document.getElementById('reportingElectionMeta').textContent = `Core Pipeline Channel ID Parameters: ${el.id} | Scope: ${el.type.toUpperCase()}`;
+
+            // Aggregate metrics
+            let totalBallotsPool = 0;
+            let totalSpoiltPool = Object.values(el.spoiltVotes).reduce((a, b) => a + b, 0);
+            
+            // Total national registered voters pool
+            let totalElectoratePool = db.counties.reduce((a, b) => a + b.registered_voters, 0);
+
+            // Compute candidate vote aggregates
+            let parsedCandidates = el.candidates.map(c => {
+                let candidateTotalVotes = Object.values(c.votes).reduce((a, b) => a + b, 0);
+                totalBallotsPool += candidateTotalVotes;
+                return { ...c, totalVotesAggregate: candidateTotalVotes };
+            });
+
+            // Sort candidates descending based on cumulative total votes aggregate
+            parsedCandidates.sort((a, b) => b.totalVotesAggregate - a.totalVotesAggregate);
+
+            let overallTurnoutPct = totalElectoratePool > 0 ? ((totalBallotsPool + totalSpoiltPool) / totalElectoratePool) * 100 : 0;
+            document.getElementById('nationalReportingProgressText').textContent = `${overallTurnoutPct.toFixed(2)}%`;
+            document.getElementById('nationalReportingProgressBar').style.width = `${Math.min(100, overallTurnoutPct)}%`;
+
+            // Render Candidate Row Cards
+            renderReportingCandidatesList(parsedCandidates, totalBallotsPool, el);
+            renderReportingPieCompositionChart(parsedCandidates);
+            renderCrossTerritorialMatrixTable(parsedCandidates, el);
+            renderReportingGeographicSvgMap(parsedCandidates, el);
+        }
+
+        function renderReportingCandidatesList(candidates, totalValidVotes, election) {
+            const container = document.getElementById('reportingCandidatesList');
+            container.innerHTML = '';
+
+            candidates.forEach((c, idx) => {
+                let pct = totalValidVotes > 0 ? (c.totalVotesAggregate / totalValidVotes) * 100 : 0;
+                let trendIcon = c.growth >= 0 ? "📈" : "📉";
+                let trendColor = c.growth >= 0 ? "text-emerald-400" : "text-rose-400";
+                
+                // Track geometric boundary counts won
+                let statesWonCount = 0;
+                let countiesWonCount = 0;
+
+                // Loop territories to evaluate wins
+                db.states.forEach(st => {
+                    let topCand = null, topV = -1;
+                    election.candidates.forEach(cand => {
+                        let sVotes = db.counties.filter(co => co.state === st.name).reduce((acc, curr) => acc + (cand.votes[curr.id] || 0), 0);
+                        if(sVotes > topV) { topV = sVotes; topCand = cand.id; }
+                    });
+                    if(topCand === c.id && topV > 0) statesWonCount++;
+                });
+
+                db.counties.forEach(co => {
+                    let topCand = null, topV = -1;
+                    election.candidates.forEach(cand => {
+                        let cv = cand.votes[co.id] || 0;
+                        if(cv > topV) { topV = cv; topCand = cand.id; }
+                    });
+                    if(topCand === c.id && topV > 0) countiesWonCount++;
+                });
+
+                let rowCard = document.createElement('div');
+                rowCard.className = "bg-slate-900 border border-slate-800 rounded-xl p-3 flex gap-3 hover:border-amber-500/30 transition cursor-pointer relative overflow-hidden";
+                rowCard.innerHTML = `
+                    <div class="absolute left-0 top-0 bottom-0 w-1.5" style="background-color: ${partyColors[c.party] || '#475569'}"></div>
+                    <div class="w-12 h-12 rounded-lg bg-slate-950 border border-slate-800 shrink-0 overflow-hidden flex items-center justify-center font-black text-slate-700 text-sm">AVATAR</div>
+                    <div class="flex-1 flex flex-col gap-1">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="text-xs font-black text-slate-200 uppercase tracking-tight">${c.name}</h4>
+                                <span class="text-[9px] font-mono font-bold tracking-wider px-1.5 py-0.2 rounded" style="background-color: ${(partyColors[c.party] || '#475569')+'20'}; color: ${partyColors[c.party]}">${c.party}</span>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-xs font-black font-mono text-amber-400">${pct.toFixed(2)}%</div>
+                                <div class="text-[10px] font-mono text-slate-400">${c.totalVotesAggregate.toLocaleString()} v</div>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 border-t border-slate-800/60 pt-2 mt-1 text-[10px] font-mono text-slate-400">
+                            <div>Won States: <b class="text-slate-200">${election.type === 'national' ? statesWonCount : 'N/A'}</b></div>
+                            <div>Won Counties: <b class="text-slate-200">${countiesWonCount}</b></div>
+                            <div class="${trendColor} text-right font-bold">${trendIcon} ${c.growth > 0 ? '+' : ''}${c.growth}%</div>
+                        </div>
+                    </div>
+                `;
+                rowCard.addEventListener('click', () => drillDownCandidateProfileView(c.id));
+                container.appendChild(rowCard);
+            });
+        }
+
+        // PIE MATRIX DRAW COMPILER WITH BASE VECTOR ANGLES
+        function renderReportingPieCompositionChart(candidates) {
+            const svgEl = d3.select("#pieChartCanvas");
+            svgEl.selectAll("*").remove();
+            
+            const w = 320, h = 160;
+            svgEl.attr("viewBox", `0 0 ${w} ${h}`);
+
+            let data = candidates.filter(c => c.totalVotesAggregate > 0);
+            if(data.length === 0) {
+                svgEl.append("text").attr("x", w/2).attr("y", h/2).attr("text-anchor", "middle").attr("fill", "#475569").attr("font-size", "11px").text("No active ballots cast to render composition.");
+                return;
+            }
+
+            const radius = Math.min(w, h) / 1.2;
+            const pieGroup = svgEl.append("g").attr("transform", `translate(${w/2}, ${h/1.1})`);
+
+            const pie = d3.pie().value(d => d.totalVotesAggregate).startAngle(-Math.PI/2).endAngle(Math.PI/2);
+            const arc = d3.arc().innerRadius(radius * 0.4).outerRadius(radius * 0.8);
+
+            const arcs = pieGroup.selectAll(".arc").data(pie(data)).join("g").attr("class", "arc");
+            arcs.append("path").attr("d", arc).attr("fill", d => partyColors[d.data.party] || "#475569").attr("stroke", "#0f172a").attr("stroke-width", "2");
+        }
+
+        // MATRIX GRID VIEWER TABULAR ROUTINE
+        function renderCrossTerritorialMatrixTable(candidates, election) {
+            const header = document.getElementById('crossMatrixTableHeader');
+            const body = document.getElementById('crossMatrixTableBody');
+            
+            header.innerHTML = '';
+            body.innerHTML = '';
+
+            // Generate Headers Block
+            let trH = document.createElement('tr');
+            trH.innerHTML = `<th class="p-1.5 uppercase tracking-wider text-[9px]">Territory Node</th>`;
+            candidates.forEach(c => {
+                trH.innerHTML += `<th class="p-1.5 text-right font-bold" style="color: ${partyColors[c.party]}">${c.party}</th>`;
+            });
+            header.appendChild(trH);
+
+            if(selectedReportingTab === 'state') {
+                // Compile row values array for sorting algorithms
+                let stateRowsData = db.states.map(st => {
+                    let cData = {};
+                    let highestV = -1, winParty = "";
+                    candidates.forEach(cand => {
+                        let cv = db.counties.filter(co => co.state === st.name).reduce((acc, curr) => acc + (cand.votes[curr.id] || 0), 0);
+                        cData[cand.id] = cv;
+                        if(cv > highestV) { highestV = cv; winParty = cand.party; }
+                    });
+                    return { name: st.name, cells: cData, winningParty: winParty, sortVal: highestV };
+                });
+
+                // Sort based on layout preference conditions
+                stateRowsData.sort((a, b) => b.sortVal - a.sortVal);
+
+                stateRowsData.forEach(row => {
+                    let tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-900/60 border-b border-slate-900 cursor-pointer";
+                    tr.innerHTML = `<td class="p-1.5 font-bold text-slate-300 uppercase">${row.name}</td>`;
+                    candidates.forEach(c => {
+                        let isWinner = row.winningParty === c.party;
+                        let bgStyle = isWinner ? `style="background-color: ${(partyColors[c.party] || '#000')+'20'}; font-weight: 900;"` : '';
+                        tr.innerHTML += `<td class="p-1.5 text-right" ${bgStyle}>${(row.cells[c.id] || 0).toLocaleString()}</td>`;
+                    });
+                    tr.addEventListener('click', () => drillDownTerritoryProfileView(row.name, 'state'));
+                    body.appendChild(tr);
+                });
+            } else {
+                let countyRowsData = db.counties.map(co => {
+                    let cData = {};
+                    let highestV = -1, winParty = "";
+                    candidates.forEach(cand => {
+                        let cv = cand.votes[co.id] || 0;
+                        cData[cand.id] = cv;
+                        if(cv > highestV) { highestV = cv; winParty = cand.party; }
+                    });
+                    return { id: co.id, name: co.county, cells: cData, winningParty: winParty, sortVal: highestV };
+                });
+
+                countyRowsData.sort((a, b) => b.sortVal - a.sortVal);
+
+                countyRowsData.forEach(row => {
+                    let tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-900/60 border-b border-slate-900 cursor-pointer";
+                    tr.innerHTML = `<td class="p-1.5 font-bold text-slate-300">${row.name}</td>`;
+                    candidates.forEach(c => {
+                        let isWinner = row.winningParty === c.party;
+                        let bgStyle = isWinner ? `style="background-color: ${(partyColors[c.party] || '#000')+'20'}; font-weight: 900;"` : '';
+                        tr.innerHTML += `<td class="p-1.5 text-right" ${bgStyle}>${(row.cells[c.id] || 0).toLocaleString()}</td>`;
+                    });
+                    tr.addEventListener('click', () => drillDownTerritoryProfileView(row.id, 'county'));
+                    body.appendChild(tr);
+                });
+            }
+        }
+
+        // TRIGGER SWITCH HANDLERS FOR THE LOWER TABULAR METRIC MATRICES
+        document.getElementById('toggleViewStateVotesBtn').addEventListener('click', function() {
+            selectedReportingTab = "state";
+            this.className = "bg-amber-600 text-white font-bold text-xs py-1.5 rounded transition";
+            document.getElementById('toggleViewCountyVotesBtn').className = "bg-slate-800 text-slate-300 font-bold text-xs py-1.5 rounded transition hover:bg-slate-700";
+            compileElectionDashboardCalculations();
+        });
+
+        document.getElementById('toggleViewCountyVotesBtn').addEventListener('click', function() {
+            selectedReportingTab = "county";
+            this.className = "bg-amber-600 text-white font-bold text-xs py-1.5 rounded transition";
+            document.getElementById('toggleViewStateVotesBtn').className = "bg-slate-800 text-slate-300 font-bold text-xs py-1.5 rounded transition hover:bg-slate-700";
+            compileElectionDashboardCalculations();
+        });
+
+        // ================= D3 GEOMETRIC VECTOR CANVAS MAP ENGINE RENDER COMPLEX =================
+        function renderReportingGeographicSvgMap(candidates, election) {
+            const svgEl = d3.select("#reportingMapCanvas");
+            svgEl.selectAll("*").remove();
+
+            const w = 800, h = 550;
+            svgEl.attr("viewBox", `0 0 ${w} ${h}`).style("background", "#ffffff");
+
+            const canvasGroup = svgEl.append("g");
+            const geoTargetData = selectedReportingTab === 'state' ? geoStatesJson : geoCountiesJson;
+
+            if(!geoTargetData) {
+                svgEl.append("text").attr("x", w/2).attr("y", h/2).attr("text-anchor", "middle").attr("fill", "#64748b").attr("font-size", "12px").text("Vector geometry array missing from root. Drop mapping JSON assets into file repository.");
+                return;
+            }
+
+            const projection = d3.geoIdentity().reflectY(true).fitSize([w - 40, h - 40], geoTargetData);
+            const pathGenerator = d3.geoPath().projection(projection);
+
+            let alignmentFailedList = [];
+
+            const segments = canvasGroup.selectAll(".map-slice")
+                .data(geoTargetData.features)
+                .join("path")
+                .attr("class", "map-slice transition-all duration-200 cursor-pointer")
+                .attr("d", pathGenerator)
+                .attr("stroke", "#ffffff")
+                .attr("stroke-width", "0.6")
+                .attr("fill", function(d) {
+                    let matchingId = null;
+                    let identityToken = d.properties.name || d.properties.Name || d.properties.county || d.properties.state;
+                    
+                    if(selectedReportingTab === 'state') {
+                        let match = db.states.find(s => s.name.toLowerCase() === identityToken.toLowerCase());
+                        if(match) {
+                            // Find winning candidate inside this state scope matrix
+                            let topCand = null, maxV = -1;
+                            candidates.forEach(c => {
+                                let cv = db.counties.filter(co => co.state === match.name).reduce((acc, curr) => acc + (c.votes[curr.id] || 0), 0);
+                                if(cv > maxV) { maxV = cv; topCand = c; }
+                            });
+                            return (topCand && maxV > 0) ? partyColors[topCand.party] : "#cbd5e1";
+                        }
+                    } else {
+                        // County matching protocol logic
+                        let match = db.counties.find(c => c.county.toLowerCase() === identityToken.toLowerCase());
+                        if(match) {
+                            let topCand = null, maxV = -1;
+                            candidates.forEach(c => {
+                                let cv = c.votes[match.id] || 0;
+                                if(cv > maxV) { maxV = cv; topCand = c; }
+                            });
+                            return (topCand && maxV > 0) ? partyColors[topCand.party] : "#cbd5e1";
+                        }
+                    }
+
+                    if(identityToken && !alignmentFailedList.includes(identityToken)) alignmentFailedList.push(identityToken);
+                    return "#f1f5f9";
+                });
+
+            // Evaluate misalignment status UI panel overlay
+            const alertNode = document.getElementById('manualAlignmentAlertBox');
+            if(alignmentFailedList.length > 0) {
+                alertNode.classList.remove('hidden');
+                document.getElementById('openAlignmentWizardBtn').onclick = () => openAlignmentSynchronizationWizard(alignmentFailedList, selectedReportingTab);
+            } else {
+                alertNode.classList.add('hidden');
+            }
+
+            // Implement interactive map typography strings label tags
+            if(isLabelsEnabled) {
+                const labelContainer = canvasGroup.append("g").attr("font-size", "7px").attr("fill", "#0f172a").attr("text-anchor", "middle").attr("font-weight", "bold");
+                geoTargetData.features.forEach(f => {
+                    let centroid = pathGenerator.centroid(f);
+                    let label = f.properties.name || f.properties.county || "";
+                    if(centroid && !isNaN(centroid[0]) && !isNaN(centroid[1])) {
+                        labelContainer.append("text").attr("x", centroid[0]).attr("y", centroid[1]).text(label);
+                    }
+                });
+            }
+        }
+
+        // TRIGGER SYNC BINDINGS FOR INTERACTIVE THEMATIC OVERLAYS MAPPED MAP BUTTON HOOKS
+        document.getElementById('mapToggleStateBtn').addEventListener('click', function() {
+            selectedReportingTab = "state";
+            this.className = "bg-amber-600 text-white font-black text-[10px] uppercase px-3 py-1 rounded transition";
+            document.getElementById('mapToggleCountyBtn').className = "bg-slate-800 text-slate-400 font-black text-[10px] uppercase px-3 py-1 rounded transition hover:bg-slate-700";
+            compileElectionDashboardCalculations();
+        });
+
+        document.getElementById('mapToggleCountyBtn').addEventListener('click', function() {
+            selectedReportingTab = "county";
+            this.className = "bg-amber-600 text-white font-black text-[10px] uppercase px-3 py-1 rounded transition";
+            document.getElementById('mapToggleStateBtn').className = "bg-slate-800 text-slate-400 font-black text-[10px] uppercase px-3 py-1 rounded transition hover:bg-slate-700";
+            compileElectionDashboardCalculations();
+        });
+
+        document.getElementById('mapToggleLabelsBtn').addEventListener('click', function() {
+            isLabelsEnabled = !isLabelsEnabled;
+            this.textContent = isLabelsEnabled ? "Labels: On" : "Labels: Off";
+            compileElectionDashboardCalculations();
+        });
+
+        // ================= ALIGNMENT INTERACTIVE WIZARD COMPLEX =================
+        function openAlignmentSynchronizationWizard(unmatchedVectors, scope) {
+            document.getElementById('alignmentWizardModal').classList.remove('hidden');
+            
+            const recList = document.getElementById('wizardUnmatchedRecordsList');
+            const vecList = document.getElementById('wizardUnmatchedVectorsList');
+            
+            recList.innerHTML = '';
+            vecList.innerHTML = '';
+
+            let candidateDbProfiles = scope === 'state' ? db.states.map(s=>s.name) : db.counties.map(c=>c.county);
+            
+            let selectedRecord = null;
+            let selectedVector = null;
+
+            candidateDbProfiles.forEach(p => {
+                let div = document.createElement('div');
+                div.className = "p-1 rounded hover:bg-slate-800 cursor-pointer text-slate-300 truncate";
+                div.textContent = p;
+                div.onclick = () => {
+                    d3.selectAll("#wizardUnmatchedRecordsList div").style("background", "none").style("color", "#cbd5e1");
+                    div.style.background = "#d97706"; div.style.color = "#000";
+                    selectedRecord = p;
+                    updateWizardLinkageText(selectedRecord, selectedVector);
+                };
+                recList.appendChild(div);
+            });
+
+            unmatchedVectors.forEach(v => {
+                let div = document.createElement('div');
+                div.className = "p-1 rounded hover:bg-slate-800 cursor-pointer text-rose-300 truncate";
+                div.textContent = v;
+                div.onclick = () => {
+                    d3.selectAll("#wizardUnmatchedVectorsList div").style("background", "none").style("color", "#fca5a5");
+                    div.style.background = "#d97706"; div.style.color = "#000";
+                    selectedVector = v;
+                    updateWizardLinkageText(selectedRecord, selectedVector);
+                };
+                vecList.appendChild(div);
+            });
+
+            document.getElementById('commitWizardLinkageBtn').onclick = () => {
+                if(selectedRecord && selectedVector) {
+                    db.unmatchedManualLinks[selectedVector.toLowerCase()] = selectedRecord;
+                    saveStateToRepositoryCache();
+                    document.getElementById('alignmentWizardModal').classList.add('hidden');
+                    compileElectionDashboardCalculations();
+                }
+            };
+        }
+
+        function updateWizardLinkageText(rec, vec) {
+            document.getElementById('wizardSelectedLinkageText').textContent = (rec && vec) ? `${rec} ➔ ${vec}` : "Selection Pending...";
+        }
+
+        document.getElementById('closeWizardModalBtn').addEventListener('click', () => document.getElementById('alignmentWizardModal').classList.add('hidden'));
+
+        // ================= CANDIDATE PROFILE MATRIX DISP TARGET DRILL DOWN =================
+        function drillDownCandidateProfileView(candidateId) {
+            switchDisplayViewportPanel('candidate');
+            const el = db.elections.find(e => e.id === currentActiveElectionId);
+            const cand = el.candidates.find(c => c.id === candidateId);
+            if(!cand) return;
+
+            document.getElementById('candProfileName').textContent = cand.name;
+            document.getElementById('candProfilePartyBadge').textContent = cand.party;
+            document.getElementById('candProfilePartyBadge').style.backgroundColor = partyColors[cand.party] || "#475569";
+            document.getElementById('candProfileAge').textContent = cand.age;
+            document.getElementById('candProfileBirthPlace').textContent = cand.birthPlace;
+
+            renderCandidateConcentrationMatrixRows(cand, el);
+            renderCandidateSpectrumIntensityMap(cand, el);
+        }
+
+        function renderCandidateConcentrationMatrixRows(candidate, election) {
+            const body = document.getElementById('candProfileTableBody');
+            body.innerHTML = '';
+
+            if(selectedCandProfileTab === 'state') {
+                db.states.forEach(st => {
+                    let stVotes = db.counties.filter(c => c.state === st.name).reduce((acc, curr) => acc + (candidate.votes[curr.id] || 0), 0);
+                    let stTotal = election.candidates.reduce((acc, curr) => acc + db.counties.filter(c => c.state === st.name).reduce((a, b) => a + (curr.votes[b.id] || 0), 0), 0);
+                    let share = stTotal > 0 ? (stVotes / stTotal) * 100 : 0;
+                    
+                    let tier = "Loser";
+                    if(share >= 50) tier = "Winner";
+                    else if(share >= 40) tier = "Second Tier";
+                    else if(share >= 25) tier = "Third Tier";
+
+                    let tr = document.createElement('tr');
+                    tr.className = "border-b border-slate-900";
+                    tr.innerHTML = `<td class="p-1.5 font-bold uppercase">${st.name}</td><td class="p-1.5">${stVotes.toLocaleString()}</td><td class="p-1.5 text-amber-400 font-bold">${share.toFixed(1)}%</td><td class="p-1.5 text-right font-bold text-slate-400">${tier}</td>`;
+                    body.appendChild(tr);
+                });
+            } else {
+                db.counties.forEach(co => {
+                    let cVotes = candidate.votes[co.id] || 0;
+                    let cTotal = election.candidates.reduce((acc, curr) => acc + (curr.votes[co.id] || 0), 0);
+                    let share = cTotal > 0 ? (cVotes / cTotal) * 100 : 0;
+
+                    let tier = "Loser";
+                    if(share >= 50) tier = "Winner";
+                    else if(share >= 40) tier = "Second Tier";
+
+                    let tr = document.createElement('tr');
+                    tr.className = "border-b border-slate-900";
+                    tr.innerHTML = `<td class="p-1.5">${co.county}</td><td class="p-1.5">${cVotes.toLocaleString()}</td><td class="p-1.5 text-amber-400 font-bold">${share.toFixed(1)}%</td><td class="p-1.5 text-right font-bold text-slate-400">${tier}</td>`;
+                    body.appendChild(tr);
+                });
+            }
+        }
+
+        function renderCandidateSpectrumIntensityMap(candidate, election) {
+            const svgEl = d3.select("#candProfileMapCanvas"); svgEl.selectAll("*").remove();
+            const w = 600, h = 450; svgEl.attr("viewBox", `0 0 ${w} ${h}`).style("background", "#ffffff");
+            
+            const geoData = selectedCandProfileTab === 'state' ? geoStatesJson : geoCountiesJson;
+            if(!geoData) return;
+
+            const projection = d3.geoIdentity().reflectY(true).fitSize([w-20, h-20], geoData);
+            const pathGen = d3.geoPath().projection(projection);
+
+            svgEl.append("g").selectAll(".cand-slice")
+                .data(geoData.features)
+                .join("path")
+                .attr("d", pathGen)
+                .attr("stroke", "#ffffff").attr("stroke-width", "0.5")
+                .attr("fill", function(d) {
+                    let identityToken = d.properties.name || d.properties.county || "";
+                    let share = 0;
+                    
+                    if(selectedCandProfileTab === 'state') {
+                        let stVotes = db.counties.filter(c => c.state === identityToken).reduce((acc, curr) => acc + (candidate.votes[curr.id] || 0), 0);
+                        let stTotal = election.candidates.reduce((acc, curr) => acc + db.counties.filter(c => c.state === identityToken).reduce((a, b) => a + (curr.votes[b.id] || 0), 0), 0);
+                        share = stTotal > 0 ? (stVotes / stTotal) * 100 : 0;
+                    } else {
+                        let match = db.counties.find(c => c.county.toLowerCase() === identityToken.toLowerCase());
+                        if(match) {
+                            let cv = candidate.votes[match.id] || 0;
+                            let cTotal = election.candidates.reduce((acc, curr) => acc + (curr.votes[match.id] || 0), 0);
+                            share = cTotal > 0 ? (cv / cTotal) * 100 : 0;
+                        }
+                    }
+
+                    if(share === 0) return "#f1f5f9";
+                    let intensity = Math.min(1, share / 100);
+                    return d3.interpolateLab("#ffffff", partyColors[candidate.party] || "#475569")(intensity);
+                });
+        }
+
+        document.getElementById('candProfileToggleStateBtn').addEventListener('click', function() {
+            selectedCandProfileTab = 'state'; this.className = "flex-1 bg-amber-600 text-white rounded py-0.5 transition";
+            document.getElementById('candProfileToggleCountyBtn').className = "flex-1 text-slate-400 py-0.5 rounded transition";
+            const el = db.elections.find(e => e.id === currentActiveElectionId);
+            drillDownCandidateProfileView(el.candidates[0].id);
+        });
+
+        document.getElementById('candProfileToggleCountyBtn').addEventListener('click', function() {
+            selectedCandProfileTab = 'county'; this.className = "flex-1 bg-amber-600 text-white rounded py-0.5 transition";
+            document.getElementById('candProfileToggleStateBtn').className = "flex-1 text-slate-400 py-0.5 rounded transition";
+            const el = db.elections.find(e => e.id === currentActiveElectionId);
+            drillDownCandidateProfileView(el.candidates[0].id);
+        });
+
+        document.getElementById('closeCandidateProfileBtn').addEventListener('click', () => switchDisplayViewportPanel('reporting'));
+
+        // ================= TERRITORIAL INDEPENDENT SPECIFIC DRILL-DOWN MATRIX =================
+        function drillDownTerritoryProfileView(targetId, targetType) {
+            switchDisplayViewportPanel('territory');
+            const election = db.elections.find(e => e.id === currentActiveElectionId);
+
+            if(targetType === 'state') {
+                let match = db.states.find(s => s.name === targetId);
+                document.getElementById('territoryProfileTitle').textContent = `${match.name} State Operational Profile`;
+                document.getElementById('territoryProfileRegion').textContent = `Macro-Region Context: ${match.region}`;
+                document.getElementById('territoryProfileRegistered').textContent = match.registered_voters.toLocaleString();
+
+                // Compute inner counties configuration tables parameters matrix
+                let innerCounties = db.counties.filter(c => c.state === match.name);
+                renderTerritorialDrillDownMatrixGrid(innerCounties, election);
+            }
+        }
+
+        function renderTerritorialDrillDownMatrixGrid(countiesList, election) {
+            const head = document.getElementById('territorySubMatrixHeader');
+            const body = document.getElementById('territorySubMatrixBody');
+            head.innerHTML = ''; body.innerHTML = '';
+
+            let trH = document.createElement('tr');
+            trH.innerHTML = `<th class="p-1">County Sector Node</th>`;
+            election.candidates.forEach(c => { trH.innerHTML += `<th class="p-1 text-right">${c.party}</th>`; });
+            head.appendChild(trH);
+
+            countiesList.forEach(co => {
+                let tr = document.createElement('tr'); tr.className = "border-b border-slate-900";
+                tr.innerHTML = `<td class="p-1 text-slate-300">${co.county}</td>`;
+                election.candidates.forEach(c => {
+                    let val = c.votes[co.id] || 0;
+                    tr.innerHTML += `<td class="p-1 text-right font-mono">${val.toLocaleString()}</td>`;
+                });
+                body.appendChild(tr);
+            });
+        }
+
+        document.getElementById('closeTerritoryProfileBtn').addEventListener('click', () => switchDisplayViewportPanel('reporting'));
+
+        // ================= MANAGEMENT REAL-TIME DATA POPULATION AND VOTE SYSTEM WRAPPER =================
+        function syncAdminControlsComplex() {
+            const eSel = document.getElementById('adminActiveElectionSelector');
+            eSel.innerHTML = '<option value="">-- Choose Active Event Pipeline --</option>';
+            db.elections.forEach(el => {
+                eSel.innerHTML += `<option value="${el.id}">${el.name} [${el.id}]</option>`;
+            });
+
+            const stSel = document.getElementById('voteMgmtStateSelector');
+            stSel.innerHTML = '<option value="">-- Select State --</option>';
+            db.states.forEach(s => { stSel.innerHTML += `<option value="${s.name}">${s.name}</option>`; });
+        }
+
+        document.getElementById('adminElectionScope').addEventListener('change', function() {
+            const wrapper = document.getElementById('adminScopeStateSelectWrapper');
+            if(this.value === 'state') {
+                wrapper.classList.remove('hidden');
+                const target = document.getElementById('adminElectionStateTarget'); target.innerHTML = '';
+                db.states.forEach(s => { target.innerHTML += `<option value="${s.name}">${s.name}</option>`; });
+            } else { wrapper.classList.add('hidden'); }
+        });
+
+        document.getElementById('adminSaveElectionBtn').addEventListener('click', () => {
+            const scope = document.getElementById('adminElectionScope').value;
+            const name = document.getElementById('adminElectionName').value;
+            if(!name) return alert("operational configuration naming value parameters parameter required.");
+
+            let pre = scope === 'national' ? 'ORSN' : 'ORSS';
+            let nextIndex = db.elections.filter(e => e.id.startsWith(pre)).length + 1;
+            let generatedId = `${pre}${String(nextIndex).padStart(3, '0')}`;
+
+            db.elections.push({ id: generatedId, type: scope, name: name, candidates: [], spoiltVotes: {}, frozenCounties: {} });
+            saveStateToRepositoryCache(); syncAdminControlsComplex(); renderElectionCardsGrid();
+            alert(`Operational Vector Channel deployed under verification ID parameters: ${generatedId}`);
+        });
+
+        document.getElementById('adminActiveElectionSelector').addEventListener('change', function() {
+            const p = document.getElementById('adminCandidateControlPanel');
+            if(this.value) { p.classList.remove('hidden'); renderAdminCandidateRosterList(this.value); }
+            else { p.classList.add('hidden'); }
+        });
+
+        function renderAdminCandidateRosterList(electionId) {
+            const container = document.getElementById('adminCandidateRosterContainer'); container.innerHTML = '';
+            const el = db.elections.find(e => e.id === electionId);
+            if(!el) return;
+
+            el.candidates.forEach(c => {
+                let r = document.createElement('div');
+                r.className = "bg-slate-950 border border-slate-800 p-2 rounded flex justify-between items-center text-xs";
+                r.innerHTML = `<div><b>${c.name}</b> <span class="text-amber-500 font-mono">[${c.party}]</span></div>
+                               <button class="bg-rose-950/60 text-rose-400 border border-rose-900 px-2 py-0.5 rounded font-bold hover:bg-rose-900/40">Drop</button>`;
+                r.querySelector('button').onclick = () => {
+                    el.candidates = el.candidates.filter(item => item.id !== c.id);
+                    saveStateToRepositoryCache(); renderAdminCandidateRosterList(electionId); compileElectionDashboardCalculations();
+                };
+                container.appendChild(r);
+            });
+        }
+
+        document.getElementById('adminSaveCandidateBtn').addEventListener('click', () => {
+            const elId = document.getElementById('adminActiveElectionSelector').value;
+            const el = db.elections.find(e => e.id === elId);
+            const name = document.getElementById('adminCandName').value;
+            const age = parseInt(document.getElementById('adminCandAge').value);
+            const party = document.getElementById('adminCandParty').value;
+            const bPlace = document.getElementById('adminCandBirthPlace').value;
+
+            if(!name || !age) return alert("Complete parameter matrices fields validation nodes.");
+            
+            // Validate unique party lock structure requirements
+            if(el.candidates.some(c => c.party === party)) return alert("Specified organizational party anchor vector blocked by current configuration parameters.");
+
+            let cIndex = String(el.candidates.length + 1).padStart(3, '0');
+            let candId = `${cIndex}${elId}`;
+
+            el.candidates.push({ id: candId, name: name, party: party, age: age, birthPlace: bPlace, votes: {}, growth: 0.0, image: "" });
+            saveStateToRepositoryCache(); renderAdminCandidateRosterList(elId);
+            // Reset input values
+            document.getElementById('adminCandName').value = ''; document.getElementById('adminCandAge').value = '';
+        });
+
+        // ================= VOTE ENTRY STATION ENGINE HOOKS =================
+        document.getElementById('voteMgmtStateSelector').addEventListener('change', function() {
+            const cSel = document.getElementById('voteMgmtCountySelector'); cSel.innerHTML = '<option value="">-- Choose Target County --</option>';
+            let filteredCounties = db.counties.filter(c => c.state === this.value);
+            filteredCounties.forEach(co => { cSel.innerHTML += `<option value="${co.id}">${co.county}</option>`; });
+        });
+
+        document.getElementById('voteMgmtCountySelector').addEventListener('change', function() {
+            const zone = document.getElementById('voteMgmtControlZone');
+            if(!this.value) { zone.classList.add('hidden'); return; }
+            zone.classList.remove('hidden');
+            
+            const grid = document.getElementById('voteMgmtInputsGrid'); grid.innerHTML = '';
+            const elId = document.getElementById('adminActiveElectionSelector').value;
+            const el = db.elections.find(e => e.id === elId);
+            const countyId = this.value;
+
+            let isFrozen = el.frozenCounties && el.frozenCounties[countyId];
+            document.getElementById('voteMgmtLockStatusText').textContent = isFrozen ? "CLOSED / CERTIFIED" : "OPEN FOR ENTRY";
+            document.getElementById('voteMgmtLockStatusText').className = isFrozen ? "font-bold text-rose-500" : "font-bold text-emerald-400";
+
+            el.candidates.forEach(c => {
+                let div = document.createElement('div');
+                div.className = "flex flex-col gap-1 bg-slate-900 p-2 rounded border border-slate-800";
+                div.innerHTML = `
+                    <label class="text-[10px] font-bold text-slate-300 uppercase">${c.name} (${c.party})</label>
+                    <div class="flex gap-1.5 items-center">
+                        <input type="number" id="inputVote-${c.id}" value="0" class="flex-1 bg-slate-950 border border-slate-700 rounded p-1 text-xs text-slate-100 font-mono focus:outline-none ${isFrozen?'disabled-input':''}" ${isFrozen?'disabled':''}>
+                        <span class="text-[9px] text-slate-500 font-mono">Current: ${c.votes[countyId] || 0}</span>
+                    </div>
+                `;
+                grid.appendChild(div);
+            });
+
+            document.getElementById('voteMgmtSpoiltInput').value = el.spoiltVotes[countyId] || 0;
+            if(isFrozen) {
+                document.getElementById('voteMgmtSpoiltInput').classList.add('disabled-input');
+                document.getElementById('voteMgmtSpoiltInput').disabled = true;
+                document.getElementById('voteMgmtCommitChangesBtn').classList.add('hidden');
+            } else {
+                document.getElementById('voteMgmtSpoiltInput').classList.remove('disabled-input');
+                document.getElementById('voteMgmtSpoiltInput').disabled = false;
+                document.getElementById('voteMgmtCommitChangesBtn').classList.remove('hidden');
+            }
+        });
+
+        document.getElementById('voteMgmtCommitChangesBtn').addEventListener('click', () => {
+            const elId = document.getElementById('adminActiveElectionSelector').value;
+            const el = db.elections.find(e => e.id === elId);
+            const countyId = document.getElementById('voteMgmtCountySelector').value;
+            const coProfile = db.counties.find(c => c.id === countyId);
+
+            let addedBatchTotal = 0;
+            el.candidates.forEach(c => {
+                let inputVal = parseInt(document.getElementById(`inputVote-${c.id}`).value) || 0;
+                let original = c.votes[countyId] || 0;
+                c.votes[countyId] = original + inputVal;
+                addedBatchTotal += c.votes[countyId];
+            });
+
+            let sInput = parseInt(document.getElementById('voteMgmtSpoiltInput').value) || 0;
+            el.spoiltVotes[countyId] = sInput;
+            addedBatchTotal += sInput;
+
+            // Enforce automatic saturation freeze logic limits
+            if(addedBatchTotal >= coProfile.registered_voters) {
+                if(!el.frozenCounties) el.frozenCounties = {};
+                el.frozenCounties[countyId] = true;
+                alert("County voter collection registry has reached complete volumetric threshold capacity parameters. Station closed permanently.");
+            }
+
+            saveStateToRepositoryCache();
+            document.getElementById('voteMgmtCountySelector').dispatchEvent(new Event('change'));
+            compileElectionDashboardCalculations();
+        });
+
+        document.getElementById('voteMgmtManualCloseBtn').addEventListener('click', () => {
+            const elId = document.getElementById('adminActiveElectionSelector').value;
+            const el = db.elections.find(e => e.id === elId);
+            const countyId = document.getElementById('voteMgmtCountySelector').value;
+
+            if(confirm("Confirm irrevocable cryptographic system freeze parameter commands across chosen sector? This action cannot be reversed!")) {
+                if(!el.frozenCounties) el.frozenCounties = {};
+                el.frozenCounties[countyId] = true;
+                saveStateToRepositoryCache(); document.getElementById('voteMgmtCountySelector').dispatchEvent(new Event('change'));
+                compileElectionDashboardCalculations();
+            }
+        });
+
+        // ================= DEMOGRAPHICS MATRIX VIEW WORKSPACE INTERFACES =================
+        function renderDemographicsMetricsWorkspace() {
+            let totalConsolidatedPool = db.counties.reduce((acc, curr) => acc + curr.registered_voters, 0);
+            document.getElementById('demoTotalVotersText').textContent = totalConsolidatedPool.toLocaleString();
+
+            const body = document.getElementById('demoTableBody'); body.innerHTML = '';
+            db.states.forEach(st => {
+                let tr = document.createElement('tr'); tr.className = "border-b border-slate-900";
+                tr.innerHTML = `<td class="p-1.5 uppercase font-bold text-slate-300">${st.name}</td><td class="p-1.5 text-right font-mono text-amber-400 font-bold">${st.registered_voters.toLocaleString()}</td>`;
+                body.appendChild(tr);
+            });
+            renderDemographicThematicVectorCanvasMap();
+        }
+
+        function renderGraphicThematicMapDisplay() {
+            // Render basic maps loops hooks elements
+        }
+
+        function renderDemographicThematicVectorCanvasMap() {
+            const svgEl = d3.select("#demoMapCanvas"); svgEl.selectAll("*").remove();
+            const w = 600, h = 450; svgEl.attr("viewBox", `0 0 ${w} ${h}`).style("background", "#ffffff");
+
+            if(!geoStatesJson) return;
+            const projection = d3.geoIdentity().reflectY(true).fitSize([w-20, h-20], geoStatesJson);
+            const pathGen = d3.geoPath().projection(projection);
+
+            let maxV = d3.max(db.states.map(s => s.registered_voters)) || 1;
+
+            svgEl.append("g").selectAll(".demo-slice")
+                .data(geoStatesJson.features)
+                .join("path")
+                .attr("d", pathGen)
+                .attr("stroke", "#ffffff").attr("stroke-width", "0.5")
+                .attr("fill", function(d) {
+                    let token = d.properties.name || "";
+                    let match = db.states.find(s => s.name.toLowerCase() === token.toLowerCase());
+                    if(!match) return "#e2e8f0";
+                    let intensity = match.registered_voters / maxV;
+                    return d3.interpolateLab("#ffffff", "#f59e0b")(intensity);
+                });
+        }
+
+        // START EXECUTION ON INITIALIZATION SEED PIPELINES
+        initializeCoreRepositoryEngine();
+        loadAsynchronousResourceFiles();
+    </script>
+</body>
+</html>
