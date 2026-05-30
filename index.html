@@ -507,21 +507,19 @@ function saveStateToRepositoryCache() {
         // FILE LOADING PIPELINES
                 async function loadAsynchronousResourceFiles() {
             try {
-                // Fetch your permanent website database file
-                const dbRes = await fetch('database.json');
-                if(dbRes.ok) {
-                    window.STATIC_ELECTION_DB = await dbRes.json();
-                    // If local storage is empty, initialize with this file data
-                    if (!localStorage.getItem('OCE_VOTE_REPOSITORY_CACHE_V9')) {
-                        db.elections = window.STATIC_ELECTION_DB;
-                        saveStateToRepositoryCache();
-                    }
-                }
-            } catch(e) { console.error("Database asset pipeline failure:", e); }
-
-            // ... keep the rest of your original county and geojson fetches exactly the same ...
-            try {
+                // Fetch Core County Profiles JSON Database
                 const cRes = await fetch('COUNTY.json');
+                if(cRes.ok) {
+                    db.counties = await cRes.json();
+                    // Extract unique state names from the dataset setup
+                    let extractedStates = [...new Set(db.counties.map(c => c.state))].sort();
+                    db.states = extractedStates.map(st => {
+                        let totalVoters = db.counties.filter(c => c.state === st).reduce((acc, curr) => acc + curr.registered_voters, 0);
+                        return { name: st, region: db.counties.find(c => c.state === st).region, registered_voters: totalVoters };
+                    });
+                }
+            } catch(e) { console.error("Resource pipeline dynamic asset injection failure:", e); }            try {
+            
 
             try {
                 const sGeo = await fetch('(A) ORLAND STATES .json');
