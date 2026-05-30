@@ -461,7 +461,7 @@ function getOrCreateDynamicPartyColor(partyName) {
 async function initializeCoreRepositoryEngine() {
     try {
         // Scrapes the public embed preview feed of your database channel
-        const response = await fetch(`https://corsproxy.io/?https://t.me/s/${TG_CHANNEL_ID}`);
+        const response = await fetch(`https://corsproxy.io/?https://t.me/s/${TG_CHANNEL_ID}?nocache=${Date.now()}`);
         if (response.ok) {
             const htmlText = await response.text();
             
