@@ -177,7 +177,7 @@
                         <button id="candMapToggleCounty" class="bg-slate-800 text-slate-400 px-2 py-0.5 rounded hover:bg-slate-700">County Spectrum</button>
                     </div>
                     
-                    <div id="candProfileMapContainer" class="flex-1 w-full min-h-[350px] md:min-h-0 bg-white flex items-center justify-center">
+                    <div id="candProfileMapContainer" class="flex-1 w-full bg-white flex items-center justify-center">
                         <svg id="candProfileMapCanvas" class="w-full h-full text-slate-900 select-none"></svg>
                     </div>
                 </div>
@@ -457,7 +457,6 @@ function getOrCreateDynamicPartyColor(partyName) {
 
 // CORE CACHE INITIALIZER BLOCK (No random candidates allowed)
 function initializeCoreRepositoryEngine() {
-function initializeCoreRepositoryEngine() {
     const cache = localStorage.getItem('OCE_VOTE_REPOSITORY_CACHE_V9');
     if (cache) {
         try { 
@@ -471,7 +470,6 @@ function initializeCoreRepositoryEngine() {
         saveStateToRepositoryCache();
     }
 }
-
 
 function saveStateToRepositoryCache() {
     localStorage.setItem('OCE_VOTE_REPOSITORY_CACHE_V9', JSON.stringify(db));
@@ -505,7 +503,7 @@ function saveStateToRepositoryCache() {
         document.getElementById('closeReportingWindowBtn').addEventListener('click', () => switchDisplayViewportPanel('home'));
 
         // FILE LOADING PIPELINES
-                async function loadAsynchronousResourceFiles() {
+        async function loadAsynchronousResourceFiles() {
             try {
                 // Fetch Core County Profiles JSON Database
                 const cRes = await fetch('COUNTY.json');
@@ -518,8 +516,7 @@ function saveStateToRepositoryCache() {
                         return { name: st, region: db.counties.find(c => c.state === st).region, registered_voters: totalVoters };
                     });
                 }
-            } catch(e) { console.error("Resource pipeline dynamic asset injection failure:", e); }            try {
-            
+            } catch(e) { console.error("Resource pipeline dynamic asset injection failure:", e); }
 
             try {
                 const sGeo = await fetch('(A) ORLAND STATES .json');
