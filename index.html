@@ -573,11 +573,15 @@ function saveStateToRepositoryCache() {
 
         // ================= CALCULATION AND ANALYSIS PIPELINE COMPILERS =================
         function compileElectionDashboardCalculations() {
-            const el = db.elections.find(e => e.id === currentActiveElectionId);
-            if(!el) return;
+    const el = db.elections.find(e => e.id === currentActiveElectionId);
+    if(!el) return;
 
-            document.getElementById('reportingElectionTitle').textContent = el.name;
-            document.getElementById('reportingElectionMeta').textContent = `Core Pipeline Channel ID Parameters: ${el.id} | Scope: ${el.type.toUpperCase()}`;
+    // DYNAMICALLY MAP COLORS TO PARTIES DETECTED IN THE ELECTION
+    el.candidates.forEach(c => {
+        getOrCreateDynamicPartyColor(c.party);
+    });
+
+    document.getElementById('reportingElectionTitle').textContent = el.name;
 
             // Aggregate metrics
             let totalBallotsPool = 0;
