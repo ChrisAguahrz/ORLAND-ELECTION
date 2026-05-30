@@ -457,6 +457,7 @@ function getOrCreateDynamicPartyColor(partyName) {
 
 // CORE CACHE INITIALIZER BLOCK (No random candidates allowed)
 function initializeCoreRepositoryEngine() {
+function initializeCoreRepositoryEngine() {
     const cache = localStorage.getItem('OCE_VOTE_REPOSITORY_CACHE_V9');
     if (cache) {
         try { 
@@ -464,15 +465,13 @@ function initializeCoreRepositoryEngine() {
         } catch(e) { 
             console.error("Cache serialization mismatch."); 
         }
-    } else if (window.STATIC_ELECTION_DB) {
-        // Fallback to the permanent database file embedded in the site
-        db.elections = window.STATIC_ELECTION_DB;
-        saveStateToRepositoryCache();
     } else {
+        // Keep the database pristine and empty for manual injection
         db.elections = [];
         saveStateToRepositoryCache();
     }
 }
+
 
 function saveStateToRepositoryCache() {
     localStorage.setItem('OCE_VOTE_REPOSITORY_CACHE_V9', JSON.stringify(db));
