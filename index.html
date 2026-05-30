@@ -1413,7 +1413,33 @@ function updateLiveStationFillingMetric() {
         pctText.className = "text-sm font-black font-mono text-amber-400";
     }
 }
-
+function triggerCandidateImageUpdate(electionId, candidateId) {
+    // 1. Locate the exact election pipeline inside your active cloud matrix
+    const targetElection = db.elections.find(e => e.id === electionId);
+    if (!targetElection) return;
+    
+    // 2. Locate the specific candidate profile inside that cluster
+    const targetCandidate = targetElection.candidates.find(c => c.id === candidateId);
+    if (!targetCandidate) return;
+    
+    // 3. Prompt user for the image link address
+    const newImageUrl = prompt(`Enter the online image web URL link for ${targetCandidate.name}:`, targetCandidate.image || "");
+    
+    if (newImageUrl !== null) {
+        // Clear whitespace or assign the text URL
+        targetCandidate.image = newImageUrl.trim();
+        
+        // 4. Force save state and sync straight to your Telegram cloud bot!
+        saveStateToRepositoryCache();
+        
+        // 5. Instantly force UI recompilation to show the changes
+        if (typeof compileElectionDashboardCalculations === "function") compileElectionDashboardCalculations();
+        if (typeof renderElectionCardsGrid === "function") renderElectionCardsGrid();
+        
+        alert(`📸 Avatar updated for ${targetCandidate.name}! Syncing changes to live cloud server...`);
+        location.reload(); // Refresh the page layout cleanly to draw the new image
+    }
+}
 
         // START EXECUTION ON INITIALIZATION SEED PIPELINES
         initializeCoreRepositoryEngine();
