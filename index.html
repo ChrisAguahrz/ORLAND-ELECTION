@@ -1221,34 +1221,56 @@ function saveStateToRepositoryCache() {
         });
 
         document.getElementById('voteMgmtCommitChangesBtn').addEventListener('click', () => {
-            const elId = document.getElementById('adminActiveElectionSelector').value;
-            const el = db.elections.find(e => e.id === elId);
-            const countyId = document.getElementById('voteMgmtCountySelector').value;
-            const coProfile = db.counties.find(c => c.id === countyId);
+    const elId = document.getElementById('adminActiveElectionSelector').value;
+    const el = db.elections.find(e => e.id === elId);
+    const countyId = document.getElementById('voteMgmtCountySelector').value;
+    const coProfile = db.counties.find(c => c.id === countyId);
 
-            let addedBatchTotal = 0;
-            el.candidates.forEach(c => {
-                let inputVal = parseInt(document.getElementById(`inputVote-${c.id}`).value) || 0;
-                let original = c.votes[countyId] || 0;
-                c.votes[countyId] = original + inputVal;
-                addedBatchTotal += c.votes[countyId];
-            });
+    if (!coProfile) {
+        alert("Error: County registry profile not found.");
+        return;
+    }
 
-            let sInput = parseInt(document.getElementById('voteMgmtSpoiltInput').value) || 0;
-            el.spoiltVotes[countyId] = sInput;
-            addedBatchTotal += sInput;
+    let calculatedTotalVotes = 0;
+    
+    // Calculate what the new total WOULD be if we save these inputs
+    el.candidates.forEach(c => {
+        let inputVal = parseInt(document.getElementById(`inputVote-${c.id}`).value) || 0;
+        let original = c.votes[countyId] || 0;
+        calculatedTotalVotes += (original + inputVal);
+    });
 
-            // Enforce automatic saturation freeze logic limits
-            if(addedBatchTotal >= coProfile.registered_voters) {
-                if(!el.frozenCounties) el.frozenCounties = {};
-                el.frozenCounties[countyId] = true;
-                alert("County voter collection registry has reached complete volumetric threshold capacity parameters. Station closed permanently.");
-            }
+    let sInput = parseInt(document.getElementById('voteMgmtSpoiltInput').value) || 0;
+    calculatedTotalVotes += sInput;
 
-            saveStateToRepositoryCache();
-            document.getElementById('voteMgmtCountySelector').dispatchEvent(new Event('change'));
-            compileElectionDashboardCalculations();
-        });
+    // STRICT 100% MAXIMUM ENFORCEMENT GUARD
+    if (calculatedTotalVotes > coProfile.registered_voters) {
+        alert(`🚨 CRITICAL WARNING: Total ballots (${calculatedTotalVotes.toLocaleString()}) would exceed 100% of Registered Voters (${coProfile.registered_voters.toLocaleString()}) in ${coProfile.county}! Transaction aborted.`);
+        return; // Hard stop—does not save anything!
+    }
+
+    // If it passes validation, commit the additions permanently
+    el.candidates.forEach(c => {
+        let inputVal = parseInt(document.getElementById(`inputVote-${c.id}`).value) || 0;
+        let original = c.votes[countyId] || 0;
+        c.votes[countyId] = original + inputVal;
+    });
+
+    el.spoiltVotes[countyId] = sInput;
+
+    // AUTOMATIC VOTE LOCK CLOSING: Hits exactly 100%
+    if (calculatedTotalVotes === coProfile.registered_voters) {
+        if (!el.frozenCounties) el.frozenCounties = {};
+        el.frozenCounties[countyId] = true;
+        alert(`🔒 County ${coProfile.county} has hit exactly 100% saturation. Station is now closed and certified.`);
+    }
+
+    saveStateToRepositoryCache();
+    document.getElementById('voteMgmtCountySelector').dispatchEvent(new Event('change'));
+    compileElectionDashboardCalculations();
+    alert("Ballots successfully appended to matrix.");
+});
+
 
         document.getElementById('voteMgmtManualCloseBtn').addEventListener('click', () => {
             const elId = document.getElementById('adminActiveElectionSelector').value;
