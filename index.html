@@ -443,12 +443,22 @@ let selectedCandProfileTab = "state";
 let isLabelsEnabled = false;
 
 // PARTY STYLE AND HASH CORES MAP CONFIGS
-const partyColors = {
-    IDP: "#1d4ed8", // Sapphire Imperial Blue
-    UCP: "#15803d", // Emerald Commonwealth Green
-    NFP: "#b91c1c", // Crimson Freedom Red
-    ONP: "#a16207"  // Ochre Alliance Gold
-};
+// GLOBAL REGISTRY FOR REGISTERED POLITICAL ENTITIES
+// This starts empty. When you create a candidate, the system automatically registers their party here!
+let partyColors = {};
+
+// Simple color generator to automatically assign a distinct accent hex code if a custom color isn't provided
+function getOrCreateDynamicPartyColor(partyName) {
+    if (partyColors[partyName]) return partyColors[partyName];
+    
+    // A curated palette of vibrant election-style colors for new parties
+    const operationalPalette = ["#1d4ed8", "#15803d", "#b91c1c", "#a16207", "#6d28d9", "#0369a1", "#be185d", "#0f766e"];
+    let existingCount = Object.keys(partyColors).length;
+    let assignedColor = operationalPalette[existingCount % operationalPalette.length];
+    
+    partyColors[partyName] = assignedColor;
+    return assignedColor;
+}
 
 // CORE CACHE INITIALIZER BLOCK (No random candidates allowed)
 function initializeCoreRepositoryEngine() {
