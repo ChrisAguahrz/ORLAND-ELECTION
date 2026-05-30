@@ -429,53 +429,46 @@
     </div>
 
     <script>
-        // CLIENT MEMORY CONTROL BLOCK
-        let db = {
-            elections: [],
-            counties: [],
-            states: [],
-            unmatchedManualLinks: {} 
-        };
+        // CLIENT MEMORY CONTROL BLOCK (Starts completely empty)
+let db = {
+    elections: [],
+    counties: [],
+    states: [],
+    unmatchedManualLinks: {} 
+};
 
-        let currentActiveElectionId = null;
-        let selectedReportingTab = "state"; // Options: 'state' or 'county'
-        let selectedCandProfileTab = "state";
-        let isLabelsEnabled = false;
+let currentActiveElectionId = null;
+let selectedReportingTab = "state"; 
+let selectedCandProfileTab = "state";
+let isLabelsEnabled = false;
 
-        // RUNTIME GEOMETRIC VECTOR POOLS
-        let geoStatesJson = null;
-        let geoCountiesJson = null;
+// PARTY STYLE AND HASH CORES MAP CONFIGS
+const partyColors = {
+    IDP: "#1d4ed8", // Sapphire Imperial Blue
+    UCP: "#15803d", // Emerald Commonwealth Green
+    NFP: "#b91c1c", // Crimson Freedom Red
+    ONP: "#a16207"  // Ochre Alliance Gold
+};
 
-        // PARTY STYLE AND HASH CORES MAP CONFIGS
-        const partyColors = {
-            IDP: "#1d4ed8", // Sapphire Imperial Blue
-            UCP: "#15803d", // Emerald Commonwealth Green
-            NFP: "#b91c1c", // Crimson Freedom Red
-            ONP: "#a16207"  // Ochre Alliance Gold
-        };
-
-        // CORE CACHE INITIALIZER BLOCK
-        function initializeCoreRepositoryEngine() {
-            const cache = localStorage.getItem('OCE_VOTE_REPOSITORY_CACHE_V9');
-            if(cache) {
-                try { db = JSON.parse(cache); } catch(e) { console.error("Cache serialization mismatch."); }
-            } else {
-                // SEEDING THE MOCK DATA TO POPULATE INTERFACE IMMEDIATELY
-                db.elections = [{
-                    id: "ORSN001", type: "national", name: "Commonwealth Executive Presidency Decree",
-                    candidates: [
-                        { id: "001ORSN001", name: "Chancellor Vaelen Austinas", party: "IDP", age: 54, birthPlace: "Austinas", votes: {}, growth: 1.2, image: "" },
-                        { id: "002ORSN001", name: "Archon Alyssa Orlay", party: "UCP", age: 48, birthPlace: "Orlay", votes: {}, growth: -0.4, image: "" }
-                    ],
-                    spoiltVotes: {}, frozenCounties: {}
-                }];
-            }
-            saveStateToRepositoryCache();
+// CORE CACHE INITIALIZER BLOCK (No random candidates allowed)
+function initializeCoreRepositoryEngine() {
+    const cache = localStorage.getItem('OCE_VOTE_REPOSITORY_CACHE_V9');
+    if (cache) {
+        try { 
+            db = JSON.parse(cache); 
+        } catch(e) { 
+            console.error("Cache serialization mismatch."); 
         }
+    } else {
+        // Keep the database pristine and empty for manual injection
+        db.elections = [];
+        saveStateToRepositoryCache();
+    }
+}
 
-        function saveStateToRepositoryCache() {
-            localStorage.setItem('OCE_VOTE_REPOSITORY_CACHE_V9', JSON.stringify(db));
-        }
+function saveStateToRepositoryCache() {
+    localStorage.setItem('OCE_VOTE_REPOSITORY_CACHE_V9', JSON.stringify(db));
+}
 
         // DOM ELEMENTS REFERENCE BANK
         const viewPanels = {
