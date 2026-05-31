@@ -1064,10 +1064,11 @@ function saveStateToRepositoryCache() {
 
         // ================= CANDIDATE PROFILE MATRIX DISP TARGET DRILL DOWN =================
         function drillDownCandidateProfileView(candidateId) {
-            switchDisplayViewportPanel('candidate');
-            const el = db.elections.find(e => e.id === currentActiveElectionId);
-            const cand = el.candidates.find(c => c.id === candidateId);
-            if(!cand) return;
+    activeProfileCandidateId = candidateId; // Lock in the currently clicked candidate ID
+    switchDisplayViewportPanel('candidate');
+    const el = db.elections.find(e => e.id === currentActiveElectionId);
+    const cand = el.candidates.find(c => c.id === candidateId);
+    if(!cand) return;
 
             document.getElementById('candProfileName').textContent = cand.name;
             document.getElementById('candProfilePartyBadge').textContent = cand.party;
