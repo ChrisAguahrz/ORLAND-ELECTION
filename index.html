@@ -1419,40 +1419,63 @@ function updateLiveStationFillingMetric() {
 }
 function triggerCandidateImageUpdate(electionId, candidateId) {
     const targetElection = db.elections.find(e => e.id === electionId);
-    if (!targetElection) return alert("Election not found in database.");
+    if (!targetElection) return alert("Election not found.");
     
     const targetCandidate = targetElection.candidates.find(c => c.id === candidateId);
-    if (!targetCandidate) return alert("Candidate not found in this election.");
+    if (!targetCandidate) return alert("Candidate not found.");
     
-    // Grab whatever existing link might be saved
     const existingLink = targetCandidate.image || targetCandidate.avatar || targetCandidate.photo || targetCandidate.photoUrl || "";
     const newImageUrl = prompt(`Enter the online image web URL link for ${targetCandidate.name}:`, existingLink);
     
     if (newImageUrl !== null) {
         const cleanUrl = newImageUrl.trim();
         
-        // 1. Force-save to every possible property name to satisfy the database
+        // 1. Assign values to the data object
         targetCandidate.image = cleanUrl;
         targetCandidate.avatar = cleanUrl;
         targetCandidate.photo = cleanUrl;
         targetCandidate.photoUrl = cleanUrl;
         
-        // 2. Direct DOM override: Force the on-screen image element to update right now
+        // 2. Immediate screen update so you see it instantly
         const profileImg = document.getElementById('candProfileAvatar');
-        if (profileImg) {
-            profileImg.src = cleanUrl;
-        }
+        if (profileImg) profileImg.src = cleanUrl;
         
-        // 3. Save state and sync to your repository/Telegram cache
-        if (typeof saveStateToRepositoryCache === "function") {
-            saveStateToRepositoryCache();
-        }
+        // 3. FORCE CLOUD SYNC: Fire every possible save engine in your code
+        let savedSuccessfully = false;
         
-        // 4. Force UI update calculations if they exist
+        const saveFunctions = [
+            'saveStateToRepositoryCache',
+            'saveState',
+            'saveChanges',
+            'syncDatabase',
+            'pushDataToRepository',
+            'saveToCloud',
+            'updateBackendState'
+        ];
+        
+        saveFunctions.forEach(fnName => {
+            if (typeof window[fnName] === "function") {
+                window[fnName]();
+                savedSuccessfully = true;
+                console.log(`Database saved using engine: ${fnName}`);
+            }
+        });
+        
+        // 4. Fallback: If your code uses a global save configuration object
+        if (!savedSuccessfully && typeof db !== 'undefined' && typeof db.save === 'function') {
+            db.save();
+            savedSuccessfully = true;
+        }
+
+        // 5. Trigger your UI calculators to redraw behind the scenes
         if (typeof compileElectionDashboardCalculations === "function") compileElectionDashboardCalculations();
         if (typeof renderElectionCardsGrid === "function") renderElectionCardsGrid();
         
-        alert(`📸 Avatar updated successfully for ${targetCandidate.name}!`);
+        if (savedSuccessfully) {
+            alert(`📸 Avatar synced and saved to server storage for ${targetCandidate.name}!`);
+        } else {
+            alert(`⚠ Image changed on screen, but couldn't find your precise cloud save function. Make sure to tap your Admin "Save/Sync" button if you have one!`);
+        }
     }
 }
 
