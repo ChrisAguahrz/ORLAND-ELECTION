@@ -832,7 +832,6 @@ function saveStateToRepositoryCache() {
             document.getElementById('toggleViewStateVotesBtn').className = "bg-slate-800 text-slate-300 font-bold text-xs py-1.5 rounded transition hover:bg-slate-700";
             compileElectionDashboardCalculations();
         });
-
         // ================= D3 GEOMETRIC VECTOR CANVAS MAP ENGINE RENDER COMPLEX =================
         function renderReportingGeographicSvgMap(candidates, election) {
             const svgEl = d3.select("#reportingMapCanvas");
@@ -862,13 +861,15 @@ function saveStateToRepositoryCache() {
                 .attr("stroke", "#ffffff")
                 .attr("stroke-width", "0.6")
                 .attr("fill", function(d) {
-                    let matchingId = null;
-                    let identityToken = d.properties.name || d.properties.Name || d.properties.county || d.properties.state;
+                    // Pull every conceivable geographic property key from your GeoJSON vectors
+                    let identityToken = d.properties.name || d.properties.Name || d.properties.county || d.properties.state || d.properties.NAME_2 || d.properties.NAME_1 || "";
+                    identityToken = identityToken.toString().trim();
                     
+                    if (!identityToken) return "#f1f5f9";
+
                     if(selectedReportingTab === 'state') {
                         let match = db.states.find(s => s.name.toLowerCase() === identityToken.toLowerCase());
                         if(match) {
-                            // Find winning candidate inside this state scope matrix
                             let topCand = null, maxV = -1;
                             candidates.forEach(c => {
                                 let cv = db.counties.filter(co => co.state === match.name).reduce((acc, curr) => acc + (c.votes[curr.id] || 0), 0);
@@ -877,8 +878,13 @@ function saveStateToRepositoryCache() {
                             return (topCand && maxV > 0) ? partyColors[topCand.party] : "#cbd5e1";
                         }
                     } else {
-                        // County matching protocol logic
-                        let match = db.counties.find(c => c.county.toLowerCase() === identityToken.toLowerCase());
+                        // Deep Matching Protocol for County Elements
+                        let match = db.counties.find(c => 
+                            c.county.toLowerCase() === identityToken.toLowerCase() || 
+                            identityToken.toLowerCase().includes(c.county.toLowerCase()) ||
+                            c.county.toLowerCase().includes(identityToken.toLowerCase())
+                        );
+                        
                         if(match) {
                             let topCand = null, maxV = -1;
                             candidates.forEach(c => {
@@ -890,7 +896,7 @@ function saveStateToRepositoryCache() {
                     }
 
                     if(identityToken && !alignmentFailedList.includes(identityToken)) alignmentFailedList.push(identityToken);
-                    return "#f1f5f9";
+                    return "#cbd5e1"; // Returns mid-gray standard vector layout if not won yet, instead of black masking
                 });
 
             // Evaluate misalignment status UI panel overlay
@@ -907,13 +913,14 @@ function saveStateToRepositoryCache() {
                 const labelContainer = canvasGroup.append("g").attr("font-size", "7px").attr("fill", "#0f172a").attr("text-anchor", "middle").attr("font-weight", "bold");
                 geoTargetData.features.forEach(f => {
                     let centroid = pathGenerator.centroid(f);
-                    let label = f.properties.name || f.properties.county || "";
+                    let label = f.properties.name || f.properties.county || f.properties.NAME_2 || "";
                     if(centroid && !isNaN(centroid[0]) && !isNaN(centroid[1])) {
                         labelContainer.append("text").attr("x", centroid[0]).attr("y", centroid[1]).text(label);
                     }
                 });
             }
         }
+
 
         // TRIGGER SYNC BINDINGS FOR INTERACTIVE THEMATIC OVERLAYS MAPPED MAP BUTTON HOOKS
         document.getElementById('mapToggleStateBtn').addEventListener('click', function() {
