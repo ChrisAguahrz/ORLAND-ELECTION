@@ -1418,32 +1418,37 @@ function updateLiveStationFillingMetric() {
     }
 }
 function triggerCandidateImageUpdate(electionId, candidateId) {
-    // 1. Locate the exact election pipeline inside your active cloud matrix
     const targetElection = db.elections.find(e => e.id === electionId);
     if (!targetElection) return;
     
-    // 2. Locate the specific candidate profile inside that cluster
     const targetCandidate = targetElection.candidates.find(c => c.id === candidateId);
     if (!targetCandidate) return;
     
-    // 3. Prompt user for the image link address
-    const newImageUrl = prompt(`Enter the online image web URL link for ${targetCandidate.name}:`, targetCandidate.image || "");
+    // Grabs whatever existing link might be there
+    const existingLink = targetCandidate.image || targetCandidate.avatar || targetCandidate.photo || "";
+    const newImageUrl = prompt(`Enter the online image web URL link for ${targetCandidate.name}:`, existingLink);
     
     if (newImageUrl !== null) {
-        // Clear whitespace or assign the text URL
-        targetCandidate.image = newImageUrl.trim();
+        const cleanUrl = newImageUrl.trim();
         
-        // 4. Force save state and sync straight to your Telegram cloud bot!
+        // Save to every possible property name your template might be using
+        targetCandidate.image = cleanUrl;
+        targetCandidate.avatar = cleanUrl;
+        targetCandidate.photo = cleanUrl;
+        targetCandidate.photoUrl = cleanUrl;
+        
+        // Save state and sync to your repository/Telegram setup
         saveStateToRepositoryCache();
         
-        // 5. Instantly force UI recompilation to show the changes
+        // Force UI update calculations
         if (typeof compileElectionDashboardCalculations === "function") compileElectionDashboardCalculations();
         if (typeof renderElectionCardsGrid === "function") renderElectionCardsGrid();
         
-        alert(`📸 Avatar updated for ${targetCandidate.name}! Syncing changes to live cloud server...`);
-        location.reload(); // Refresh the page layout cleanly to draw the new image
+        alert(`📸 Avatar updated for ${targetCandidate.name}!`);
+        location.reload(); // Hard refresh to force the browser to draw the new image URL
     }
 }
+
 
         // START EXECUTION ON INITIALIZATION SEED PIPELINES
         initializeCoreRepositoryEngine();
