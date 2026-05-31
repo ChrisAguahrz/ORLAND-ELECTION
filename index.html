@@ -1419,35 +1419,43 @@ function updateLiveStationFillingMetric() {
 }
 function triggerCandidateImageUpdate(electionId, candidateId) {
     const targetElection = db.elections.find(e => e.id === electionId);
-    if (!targetElection) return;
+    if (!targetElection) return alert("Election not found in database.");
     
     const targetCandidate = targetElection.candidates.find(c => c.id === candidateId);
-    if (!targetCandidate) return;
+    if (!targetCandidate) return alert("Candidate not found in this election.");
     
-    // Grabs whatever existing link might be there
-    const existingLink = targetCandidate.image || targetCandidate.avatar || targetCandidate.photo || "";
+    // Grab whatever existing link might be saved
+    const existingLink = targetCandidate.image || targetCandidate.avatar || targetCandidate.photo || targetCandidate.photoUrl || "";
     const newImageUrl = prompt(`Enter the online image web URL link for ${targetCandidate.name}:`, existingLink);
     
     if (newImageUrl !== null) {
         const cleanUrl = newImageUrl.trim();
         
-        // Save to every possible property name your template might be using
+        // 1. Force-save to every possible property name to satisfy the database
         targetCandidate.image = cleanUrl;
         targetCandidate.avatar = cleanUrl;
         targetCandidate.photo = cleanUrl;
         targetCandidate.photoUrl = cleanUrl;
         
-        // Save state and sync to your repository/Telegram setup
-        saveStateToRepositoryCache();
+        // 2. Direct DOM override: Force the on-screen image element to update right now
+        const profileImg = document.getElementById('candProfileAvatar');
+        if (profileImg) {
+            profileImg.src = cleanUrl;
+        }
         
-        // Force UI update calculations
+        // 3. Save state and sync to your repository/Telegram cache
+        if (typeof saveStateToRepositoryCache === "function") {
+            saveStateToRepositoryCache();
+        }
+        
+        // 4. Force UI update calculations if they exist
         if (typeof compileElectionDashboardCalculations === "function") compileElectionDashboardCalculations();
         if (typeof renderElectionCardsGrid === "function") renderElectionCardsGrid();
         
-        alert(`📸 Avatar updated for ${targetCandidate.name}!`);
-        location.reload(); // Hard refresh to force the browser to draw the new image URL
+        alert(`📸 Avatar updated successfully for ${targetCandidate.name}!`);
     }
 }
+
 
 
         // START EXECUTION ON INITIALIZATION SEED PIPELINES
