@@ -945,55 +945,115 @@ function saveStateToRepositoryCache() {
         });
 
         // ================= ALIGNMENT INTERACTIVE WIZARD COMPLEX =================
-        function openAlignmentSynchronizationWizard(unmatchedVectors, scope) {
+                function openAlignmentSynchronizationWizard(unmatchedGeoVectors, currentTab) {
+            // Open modal wrapper
             document.getElementById('alignmentWizardModal').classList.remove('hidden');
+
+            // Select UI lists based on your structural setup
+            const leftPoolContainer = document.getElementById('unmatchedRecordsPool') || document.querySelector('.unmatched-pool-container');
+            const rightVectorContainer = document.getElementById('availableVectorLayers') || document.querySelector('.vector-layers-container');
             
-            const recList = document.getElementById('wizardUnmatchedRecordsList');
-            const vecList = document.getElementById('wizardUnmatchedVectorsList');
-            
-            recList.innerHTML = '';
-            vecList.innerHTML = '';
+            // Wipe previous HTML outputs to rebuild clean arrays
+            leftPoolContainer.innerHTML = '';
+            rightVectorContainer.innerHTML = '';
 
-            let candidateDbProfiles = scope === 'state' ? db.states.map(s=>s.name) : db.counties.map(c=>c.county);
-            
-            let selectedRecord = null;
-            let selectedVector = null;
+            let selectedDbRecord = null;
+            let selectedGeoVector = null;
 
-            candidateDbProfiles.forEach(p => {
-                let div = document.createElement('div');
-                div.className = "p-1 rounded hover:bg-slate-800 cursor-pointer text-slate-300 truncate";
-                div.textContent = p;
-                div.onclick = () => {
-                    d3.selectAll("#wizardUnmatchedRecordsList div").style("background", "none").style("color", "#cbd5e1");
-                    div.style.background = "#d97706"; div.style.color = "#000";
-                    selectedRecord = p;
-                    updateWizardLinkageText(selectedRecord, selectedVector);
-                };
-                recList.appendChild(div);
-            });
+            // 1. Gather unmatched elements from your database arrays and filter out corrupt/empty strings
+            let unmatchedDbEntities = [];
+            if(currentTab === 'state') {
+                unmatchedDbEntities = db.states.filter(s => {
+                    if (!s.name || s.name.trim() === "" || s.name.includes("...")) return false; // Skip empty rows or dots
+                    
+                    let isMatched = geoStatesJson.features.some(f => (f.properties.STATE || "").toLowerCase().trim() === s.name.toLowerCase().trim());
+                    let hasManualLink = manualMapBindings.states[s.name.toLowerCase().trim()] || Object.values(manualMapBindings.states).includes(s.name);
+                    return !isMatched && !hasManualLink;
+                }).map(s => s.name.trim());
+            } else {
+                unmatchedDbEntities = db.counties.filter(c => {
+                    if (!c.county || c.county.trim() === "" || c.county.includes("...")) return false; // Skip empty rows or dots
+                    
+                    let isMatched = geoCountiesJson.features.some(f => (f.properties.County || "").toLowerCase().trim() === c.county.toLowerCase().trim());
+                    let hasManualLink = manualMapBindings.counties[c.county.toLowerCase().trim()] || Object.values(manualMapBindings.counties).includes(c.county);
+                    return !isMatched && !hasManualLink;
+                }).map(c => c.county.trim());
+            }
 
-            unmatchedVectors.forEach(v => {
-                let div = document.createElement('div');
-                div.className = "p-1 rounded hover:bg-slate-800 cursor-pointer text-rose-300 truncate";
-                div.textContent = v;
-                div.onclick = () => {
-                    d3.selectAll("#wizardUnmatchedVectorsList div").style("background", "none").style("color", "#fca5a5");
-                    div.style.background = "#d97706"; div.style.color = "#000";
-                    selectedVector = v;
-                    updateWizardLinkageText(selectedRecord, selectedVector);
-                };
-                vecList.appendChild(div);
-            });
+            // 2. Populate Left Box: Clean text list of Unmatched Database Names
+            if(unmatchedDbEntities.length === 0) {
+                leftPoolContainer.innerHTML = `<div class="p-3 text-xs text-slate-400 italic text-center">All database profiles aligned perfectly.</div>`;
+            } else {
+                unmatchedDbEntities.forEach(entityName => {
+                    const el = document.createElement('div');
+                    // Styling matching your clean layout configuration
+                    el.className = "p-2.5 my-1 text-sm text-sky-300 bg-slate-800/60 hover:bg-slate-700/80 rounded cursor-pointer border border-transparent transition-all font-medium block";
+                    el.style.textAlign = "left"; 
+                    el.textContent = entityName;
+                    
+                    el.onclick = () => {
+                        Array.from(leftPoolContainer.children).forEach(c => c.classList.remove('border-amber-500', 'bg-slate-700'));
+                        el.classList.add('border-amber-500', 'bg-slate-700');
+                        selectedDbRecord = entityName;
+                        updateLinkageText();
+                    };
+                    leftPoolContainer.appendChild(el);
+                });
+            }
 
-            document.getElementById('commitWizardLinkageBtn').onclick = () => {
-                if(selectedRecord && selectedVector) {
-                    db.unmatchedManualLinks[selectedVector.toLowerCase()] = selectedRecord;
-                    saveStateToRepositoryCache();
-                    document.getElementById('alignmentWizardModal').classList.add('hidden');
-                    compileElectionDashboardCalculations();
+            // 3. Populate Right Box: Unmatched GeoJSON Vector File Layer Shapes
+            // Ensure we filter out unreadable values here too
+            const validGeoVectors = unmatchedGeoVectors.filter(v => v && v.toString().trim() !== "" && !v.toString().includes("..."));
+
+            if(validGeoVectors.length === 0) {
+                rightVectorContainer.innerHTML = `<div class="p-3 text-xs text-slate-400 italic text-center">No missing map shapes found.</div>`;
+            } else {
+                validGeoVectors.forEach(vectorName => {
+                    // Skip if already manually bound
+                    if(manualMapBindings[currentTab === 'state' ? 'states' : 'counties'][vectorName.toLowerCase().trim()]) return;
+
+                    const el = document.createElement('div');
+                    el.className = "p-2.5 my-1 text-sm text-rose-300 bg-slate-800/60 hover:bg-slate-700/80 rounded cursor-pointer border border-transparent transition-all font-medium block";
+                    el.style.textAlign = "left";
+                    el.textContent = vectorName;
+                    
+                    el.onclick = () => {
+                        Array.from(rightVectorContainer.children).forEach(c => c.classList.remove('border-emerald-500', 'bg-slate-700'));
+                        el.classList.add('border-emerald-500', 'bg-slate-700');
+                        selectedGeoVector = vectorName;
+                        updateLinkageText();
+                    };
+                    rightVectorContainer.appendChild(el);
+                });
+            }
+
+            // Text output linkage string preview handler
+            const linkDisplay = document.getElementById('SelectedPathLinkageLabel') || document.querySelector('.selected-linkage-text');
+            function updateLinkageText() {
+                if(linkDisplay) {
+                    linkDisplay.textContent = `${selectedDbRecord || '???'} ──► ${selectedGeoVector || '???'}`;
                 }
+            }
+
+            // 4. Bind Button Action Execution
+            const bindBtn = document.getElementById('bindPathConfigurationBtn') || document.querySelector('.bind-path-btn');
+            bindBtn.onclick = () => {
+                if(!selectedDbRecord || !selectedGeoVector) {
+                    alert("Please select one profile name from the pool and one vector layer shape to bridge.");
+                    return;
+                }
+
+                // Save to local storage ledger immediately 
+                saveManualMapBinding(currentTab === 'state' ? 'states' : 'counties', selectedGeoVector, selectedDbRecord);
+                
+                // Refresh vector canvas matrix shapes instantly
+                renderReportingGeographicSvgMap(currentElectionCandidates, currentElectionObject);
+                
+                // Refresh wizard interface instantly to drop matched pairs
+                openAlignmentSynchronizationWizard(validGeoVectors.filter(v => v !== selectedGeoVector), currentTab);
             };
         }
+
 
         function updateWizardLinkageText(rec, vec) {
             document.getElementById('wizardSelectedLinkageText').textContent = (rec && vec) ? `${rec} ➔ ${vec}` : "Selection Pending...";
