@@ -1158,18 +1158,19 @@ function saveStateToRepositoryCache() {
         }
 
         document.getElementById('candProfileToggleStateBtn').addEventListener('click', function() {
-            selectedCandProfileTab = 'state'; this.className = "flex-1 bg-amber-600 text-white rounded py-0.5 transition";
-            document.getElementById('candProfileToggleCountyBtn').className = "flex-1 text-slate-400 py-0.5 rounded transition";
-            const el = db.elections.find(e => e.id === currentActiveElectionId);
-            drillDownCandidateProfileView(el.candidates[0].id);
-        });
+    selectedCandProfileTab = 'state'; this.className = "flex-1 bg-amber-600 text-white rounded py-0.5 transition";
+    document.getElementById('candProfileToggleCountyBtn').className = "flex-1 text-slate-400 py-0.5 rounded transition";
+    const el = db.elections.find(e => e.id === currentActiveElectionId);
+    drillDownCandidateProfileView(activeProfileCandidateId || el.candidates[0].id);
+});
 
-        document.getElementById('candProfileToggleCountyBtn').addEventListener('click', function() {
-            selectedCandProfileTab = 'county'; this.className = "flex-1 bg-amber-600 text-white rounded py-0.5 transition";
-            document.getElementById('candProfileToggleStateBtn').className = "flex-1 text-slate-400 py-0.5 rounded transition";
-            const el = db.elections.find(e => e.id === currentActiveElectionId);
-            drillDownCandidateProfileView(el.candidates[0].id);
-        });
+document.getElementById('candProfileToggleCountyBtn').addEventListener('click', function() {
+    selectedCandProfileTab = 'county'; this.className = "flex-1 bg-amber-600 text-white rounded py-0.5 transition";
+    document.getElementById('candProfileToggleStateBtn').className = "flex-1 text-slate-400 py-0.5 rounded transition";
+    const el = db.elections.find(e => e.id === currentActiveElectionId);
+    drillDownCandidateProfileView(activeProfileCandidateId || el.candidates[0].id);
+});
+
 
         document.getElementById('closeCandidateProfileBtn').addEventListener('click', () => switchDisplayViewportPanel('reporting'));
 
