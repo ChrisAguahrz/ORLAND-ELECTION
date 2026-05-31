@@ -832,7 +832,7 @@ function saveStateToRepositoryCache() {
             document.getElementById('toggleViewStateVotesBtn').className = "bg-slate-800 text-slate-300 font-bold text-xs py-1.5 rounded transition hover:bg-slate-700";
             compileElectionDashboardCalculations();
         });
-        // ================= D3 GEOMETRIC VECTOR CANVAS MAP ENGINE RENDER COMPLEX =================
+                // ================= D3 GEOMETRIC VECTOR CANVAS MAP ENGINE RENDER COMPLEX =================
         function renderReportingGeographicSvgMap(candidates, election) {
             const svgEl = d3.select("#reportingMapCanvas");
             svgEl.selectAll("*").remove();
@@ -858,17 +858,18 @@ function saveStateToRepositoryCache() {
                 .join("path")
                 .attr("class", "map-slice transition-all duration-200 cursor-pointer")
                 .attr("d", pathGenerator)
-                .attr("stroke", "#ffffff")
-                .attr("stroke-width", "0.6")
+                .attr("stroke", "#0f172a") // Sharp dark borders to easily trace shapes over the white background
+                .attr("stroke-width", "0.4")
                 .attr("fill", function(d) {
-                    // Pull every conceivable geographic property key from your GeoJSON vectors
-                    let identityToken = d.properties.name || d.properties.Name || d.properties.county || d.properties.state || d.properties.NAME_2 || d.properties.NAME_1 || "";
-                    identityToken = identityToken.toString().trim();
-                    
-                    if (!identityToken) return "#f1f5f9";
+                    if (!d.properties) return "#f1f5f9";
 
+                    // Extracted keys based on your exact file structure
+                    let geoState = d.properties.STATE || d.properties.state || d.properties.name || "";
+                    let geoCounty = d.properties.County || d.properties.county || d.properties.name || "";
+
+                    // 1. STATE LAYERS TRACKING
                     if(selectedReportingTab === 'state') {
-                        let match = db.states.find(s => s.name.toLowerCase() === identityToken.toLowerCase());
+                        let match = db.states.find(s => s.name.toLowerCase().trim() === geoState.toString().toLowerCase().trim());
                         if(match) {
                             let topCand = null, maxV = -1;
                             candidates.forEach(c => {
@@ -877,26 +878,25 @@ function saveStateToRepositoryCache() {
                             });
                             return (topCand && maxV > 0) ? partyColors[topCand.party] : "#cbd5e1";
                         }
-                    } else {
-                        // Deep Matching Protocol for County Elements
-                        let match = db.counties.find(c => 
-                            c.county.toLowerCase() === identityToken.toLowerCase() || 
-                            identityToken.toLowerCase().includes(c.county.toLowerCase()) ||
-                            c.county.toLowerCase().includes(identityToken.toLowerCase())
-                        );
-                        
+                    } 
+                    // 2. COUNTY BOUNDARIES TRACKING
+                    else {
+                        let match = db.counties.find(c => c.county.toLowerCase().trim() === geoCounty.toString().toLowerCase().trim());
                         if(match) {
                             let topCand = null, maxV = -1;
                             candidates.forEach(c => {
                                 let cv = c.votes[match.id] || 0;
                                 if(cv > maxV) { maxV = cv; topCand = c; }
                             });
-                            return (topCand && maxV > 0) ? partyColors[topCand.party] : "#cbd5e1";
+                            return (topCand && maxV > 0) ? partyColors[topCand.party] : "#cbd5e1"; // Safe mid-gray for unvoted zones
                         }
                     }
 
-                    if(identityToken && !alignmentFailedList.includes(identityToken)) alignmentFailedList.push(identityToken);
-                    return "#cbd5e1"; // Returns mid-gray standard vector layout if not won yet, instead of black masking
+                    // Log failed matches to look into the alignment portal later
+                    let fallbackLabel = geoCounty || geoState || "Unknown Vector";
+                    if(!alignmentFailedList.includes(fallbackLabel)) alignmentFailedList.push(fallbackLabel);
+                    
+                    return "#f8fafc"; // Soft slate background tint for completely missing elements
                 });
 
             // Evaluate misalignment status UI panel overlay
@@ -910,16 +910,17 @@ function saveStateToRepositoryCache() {
 
             // Implement interactive map typography strings label tags
             if(isLabelsEnabled) {
-                const labelContainer = canvasGroup.append("g").attr("font-size", "7px").attr("fill", "#0f172a").attr("text-anchor", "middle").attr("font-weight", "bold");
+                const labelContainer = canvasGroup.append("g").attr("font-size", "6px").attr("fill", "#0f172a").attr("text-anchor", "middle").attr("font-weight", "bold");
                 geoTargetData.features.forEach(f => {
                     let centroid = pathGenerator.centroid(f);
-                    let label = f.properties.name || f.properties.county || f.properties.NAME_2 || "";
+                    let label = f.properties.County || f.properties.county || f.properties.STATE || f.properties.name || "";
                     if(centroid && !isNaN(centroid[0]) && !isNaN(centroid[1])) {
                         labelContainer.append("text").attr("x", centroid[0]).attr("y", centroid[1]).text(label);
                     }
                 });
             }
         }
+
 
 
         // TRIGGER SYNC BINDINGS FOR INTERACTIVE THEMATIC OVERLAYS MAPPED MAP BUTTON HOOKS
