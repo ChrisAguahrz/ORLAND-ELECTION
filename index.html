@@ -25,7 +25,7 @@
                 <div class="w-10 h-10 bg-amber-500 rounded flex items-center justify-center font-black text-slate-950 text-xl tracking-tighter shadow-lg shadow-amber-500/20">OCE</div>
                 <div>
                     <h1 class="text-xs font-black tracking-wider text-amber-400 uppercase">Orish Council of Elections</h1>
-                    <p class="text-[10px] text-slate-400 tracking-tight font-semibold">COUNCIL% OF STATISTICS ♧ </p>
+                    <p class="text-[10px] text-slate-400 tracking-tight font-semibold">BUREAU OF STATISTICS ♧ </p>
                 </div>
             </div>
 
@@ -39,7 +39,7 @@
         <div class="border-t border-slate-800/80 pt-3 mt-auto">
             <div class="flex justify-between items-center text-[10px] text-slate-500 font-mono">
                 <span>System Pipeline Status:</span>
-                <span id="saveStatus" class="text-emerald-400 font-bold">Online..</span>
+                <span id="saveStatus" class="text-emerald-400 font-bold">Online</span>
             </div>
             <div class="text-[9px] text-slate-500 italic mt-1">Commonwealth of Orland Sovereign Platform v9.4</div>
         </div>
@@ -1157,23 +1157,19 @@ function saveStateToRepositoryCache() {
                 });
         }
 
-                document.getElementById('candProfileToggleStateBtn').addEventListener('click', function() {
-            selectedCandProfileTab = 'state'; 
-            this.className = "flex-1 bg-amber-600 text-white rounded py-0.5 transition";
-            document.getElementById('candProfileToggleCountyBtn').className = "flex-1 text-slate-400 py-0.5 rounded transition";
-            const el = db.elections.find(e => e.id === currentActiveElectionId);
-            const targetId = (typeof activeProfileCandidateId !== 'undefined' && activeProfileCandidateId) ? activeProfileCandidateId : el.candidates[0].id;
-            drillDownCandidateProfileView(targetId);
-        });
+        document.getElementById('candProfileToggleStateBtn').addEventListener('click', function() {
+    selectedCandProfileTab = 'state'; this.className = "flex-1 bg-amber-600 text-white rounded py-0.5 transition";
+    document.getElementById('candProfileToggleCountyBtn').className = "flex-1 text-slate-400 py-0.5 rounded transition";
+    const el = db.elections.find(e => e.id === currentActiveElectionId);
+    drillDownCandidateProfileView(activeProfileCandidateId || el.candidates[0].id);
+});
 
-        document.getElementById('candProfileToggleCountyBtn').addEventListener('click', function() {
-            selectedCandProfileTab = 'county'; 
-            this.className = "flex-1 bg-amber-600 text-white rounded py-0.5 transition";
-            document.getElementById('candProfileToggleStateBtn').className = "flex-1 text-slate-400 py-0.5 rounded transition";
-            const el = db.elections.find(e => e.id === currentActiveElectionId);
-            const targetId = (typeof activeProfileCandidateId !== 'undefined' && activeProfileCandidateId) ? activeProfileCandidateId : el.candidates[0].id;
-            drillDownCandidateProfileView(targetId);
-        });
+document.getElementById('candProfileToggleCountyBtn').addEventListener('click', function() {
+    selectedCandProfileTab = 'county'; this.className = "flex-1 bg-amber-600 text-white rounded py-0.5 transition";
+    document.getElementById('candProfileToggleStateBtn').className = "flex-1 text-slate-400 py-0.5 rounded transition";
+    const el = db.elections.find(e => e.id === currentActiveElectionId);
+    drillDownCandidateProfileView(activeProfileCandidateId || el.candidates[0].id);
+});
 
 
         document.getElementById('closeCandidateProfileBtn').addEventListener('click', () => switchDisplayViewportPanel('reporting'));
