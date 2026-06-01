@@ -501,9 +501,11 @@ async function initializeCoreRepositoryEngine() {
                     }
                 }
 
-                // Background fetch for 1-hour history
+                // Background fetch for 1-hour history (or oldest available)
                 const oneHourAgo = Date.now() - (60 * 60 * 1000);
                 let bestHistoricalDoc = null;
+                
+                // Try to find a message from ~1 hour ago
                 for (let i = docMessages.length - 2; i >= 0; i--) {
                     const msgWrap = docMessages[i].closest('.tgme_widget_message');
                     if (msgWrap) {
@@ -518,13 +520,21 @@ async function initializeCoreRepositoryEngine() {
                     }
                 }
 
+                // If no message is 1 hour old yet, take the oldest one we can see (the first save)
+                if (!bestHistoricalDoc && docMessages.length > 1) {
+                    bestHistoricalDoc = docMessages[0];
+                }
+
                 if (bestHistoricalDoc) {
                     const histLink = bestHistoricalDoc.querySelector('a.tgme_widget_message_document_actions');
                     if (histLink && histLink.href) {
                         const histResponse = await fetch(`https://corsproxy.io/?${histLink.href}`);
                         if (histResponse.ok) {
                             historicalDb1h = await histResponse.json();
-                            if (currentActiveElectionId && typeof compileElectionDashboardCalculations === "function") compileElectionDashboardCalculations();
+                            // Refresh the dashboard to show the new growth numbers
+                            if (currentActiveElectionId && typeof compileElectionDashboardCalculations === "function") {
+                                compileElectionDashboardCalculations();
+                            }
                         }
                     }
                 }
