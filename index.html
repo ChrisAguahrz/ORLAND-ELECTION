@@ -506,18 +506,38 @@ function saveStateToRepositoryCache() {
     // Keep local storage active as a fallback local backup
     localStorage.setItem('OCE_VOTE_REPOSITORY_CACHE_V9', JSON.stringify(db));
 
-    // PACK AND SEND LIVE DATA TO TELEGRAM CLOUD CHANNEL
-    fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            chat_id: `@${TG_CHANNEL_ID}`,
-            text: JSON.stringify(db.elections) // Converts your dataset to a text string
+        // ================== GLOBAL REMOTE BACKUP SYNC TO LIVE TELEGRAM CLOUD CHANNEL
+        const compressedPayload = JSON.stringify(db.elections);
+        
+        if (compressedPayload.length > 4096) {
+            console.warn(`⚠️ Warning: Dataset size (${compressedPayload.length} chars) exceeds Telegram's single-message limit. Compressing views...`);
+        }
+
+        fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: `@${TG_CHANNEL_ID}`,
+                text: compressedPayload
+            })
         })
-    })
-    .then(res => console.log("Global cloud matrix synced to Telegram channel node."))
-    .catch(err => console.error("Cloud broadcast network failure:", err));
-}
+        .then(async res => {
+            const data = await res.json();
+            if (!res.ok) {
+                console.error("Telegram API Error Response:", data);
+                document.getElementById('saveStatus').textContent = "Sync Limit Blocked ⚠️";
+                document.getElementById('saveStatus').className = "text-rose-500 font-bold";
+            } else {
+                console.log("Global cloud matrix synced to Telegram channel node.");
+                document.getElementById('saveStatus').textContent = "Synced Securely ✓";
+                document.getElementById('saveStatus').className = "text-emerald-400 font-bold";
+            }
+        })
+        .catch(err => {
+            console.error("Cloud broadcast network failure:", err);
+            document.getElementById('saveStatus').textContent = "Offline ❌";
+        });
+
 
 
         // DOM ELEMENTS REFERENCE BANK
