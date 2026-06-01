@@ -506,36 +506,22 @@ function saveStateToRepositoryCache() {
     // Keep local storage active as a fallback local backup
     localStorage.setItem('OCE_VOTE_REPOSITORY_CACHE_V9', JSON.stringify(db));
 
-        // ================== GLOBAL REMOTE BACKUP SYNC TO LIVE TELEGRAM CLOUD CHANNEL
-        const compressedPayload = JSON.stringify(db.elections);
-        
-        if (compressedPayload.length > 4096) {
-            console.warn(`⚠️ Warning: Dataset size (${compressedPayload.length} chars) exceeds Telegram's single-message limit. Compressing views...`);
-        }
+                // ================== GLOBAL REMOTE BACKUP SYNC TO LIVE TELEGRAM CLOUD CHANNEL
+        var compressedPayload = JSON.stringify(db.elections);
 
-        fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, {
+        fetch('https://api.telegram.org/bot' + TG_BOT_TOKEN + '/sendMessage', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                chat_id: `@${TG_CHANNEL_ID}`,
+                chat_id: '@' + TG_CHANNEL_ID,
                 text: compressedPayload
             })
         })
-        .then(async res => {
-            const data = await res.json();
-            if (!res.ok) {
-                console.error("Telegram API Error Response:", data);
-                document.getElementById('saveStatus').textContent = "Sync Limit Blocked ⚠️";
-                document.getElementById('saveStatus').className = "text-rose-500 font-bold";
-            } else {
-                console.log("Global cloud matrix synced to Telegram channel node.");
-                document.getElementById('saveStatus').textContent = "Synced Securely ✓";
-                document.getElementById('saveStatus').className = "text-emerald-400 font-bold";
-            }
+        .then(function(res) {
+            console.log("Network request completed.");
         })
-        .catch(err => {
-            console.error("Cloud broadcast network failure:", err);
-            document.getElementById('saveStatus').textContent = "Offline ❌";
+        .catch(function(err) {
+            console.error("Network request failed:", err);
         });
 
 
