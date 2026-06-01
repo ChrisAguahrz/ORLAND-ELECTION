@@ -469,16 +469,33 @@ async function initializeCoreRepositoryEngine() {
         const response = await fetch(`https://corsproxy.io/?https://t.me/s/${TG_CHANNEL_ID}?nocache=${Date.now()}`);
         if (response.ok) {
             const htmlText = await response.text();
-            
-            // Create a temporary element to parse the channel HTML text blocks
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = htmlText;
             
-            // Find all message text nodes inside the channel timeline feed
-            const messages = tempDiv.querySelectorAll('.tgme_widget_message_text');
+            // Look for file download links (Telegram web preview uses .tgme_widget_message_document_wrap)
+            const docMessages = tempDiv.querySelectorAll('.tgme_widget_message_document_wrap');
             
+            if (docMessages.length > 0) {
+                // Get the most recent document message
+                const latestDoc = docMessages[docMessages.length - 1];
+                const downloadLink = latestDoc.querySelector('a.tgme_widget_message_document_actions');
+                
+                if (downloadLink && downloadLink.href) {
+                    // Fetch the file content from the download URL
+                    const fileResponse = await fetch(`https://corsproxy.io/?${downloadLink.href}`);
+                    if (fileResponse.ok) {
+                        const fileData = await fileResponse.json();
+                        db.elections = fileData;
+                        if (typeof compileElectionDashboardCalculations === "function") compileElectionDashboardCalculations();
+                        if (typeof renderElectionCardsGrid === "function") renderElectionCardsGrid();
+                        return;
+                    }
+                }
+            }
+
+            // Fallback to text message scraping if no file is found
+            const messages = tempDiv.querySelectorAll('.tgme_widget_message_text');
             if (messages.length > 0) {
-                // Search backwards for the latest valid JSON message
                 for (let i = messages.length - 1; i >= 0; i--) {
                     const latestMessageText = messages[i].innerText.trim();
                     if (latestMessageText.startsWith('[') || latestMessageText.startsWith('{')) {
@@ -487,18 +504,15 @@ async function initializeCoreRepositoryEngine() {
                             if (typeof compileElectionDashboardCalculations === "function") compileElectionDashboardCalculations();
                             if (typeof renderElectionCardsGrid === "function") renderElectionCardsGrid();
                             return; 
-                        } catch (e) {
-                            console.warn("Found JSON-like message but failed to parse:", e);
-                        }
+                        } catch (e) { console.warn("JSON parse fail:", e); }
                     }
                 }
             }
         }
     } catch (e) {
-        console.error("Telegram cloud bridge offline, fallback to local client storage core:", e);
+        console.error("Telegram cloud bridge offline:", e);
     }
 
-    // Local memory fallback if user is completely offline or channel is brand new
     const cache = localStorage.getItem('OCE_VOTE_REPOSITORY_CACHE_V9');
     if (cache) db = JSON.parse(cache);
 }
@@ -508,28 +522,26 @@ function saveStateToRepositoryCache() {
     // Keep local storage active as a fallback local backup
     localStorage.setItem('OCE_VOTE_REPOSITORY_CACHE_V9', JSON.stringify(db));
 
-    // PACK AND SEND LIVE DATA TO TELEGRAM CLOUD CHANNEL
+    // PACK AND SEND LIVE DATA TO TELEGRAM CLOUD CHANNEL AS A FILE
     const cleanChannelId = TG_CHANNEL_ID.startsWith('@') ? TG_CHANNEL_ID : `@${TG_CHANNEL_ID}`;
-    const dataToSave = JSON.stringify(db.elections);
+    const dataToSave = JSON.stringify(db.elections, null, 2);
     
-    // Telegram message limit is 4096 characters
-    if (dataToSave.length > 4000) {
-        console.error("Data size exceeds Telegram limit");
-        alert("Warning: Data is too large for Telegram storage. Local backup saved, but cloud sync may fail.");
-    }
+    // Create a virtual file (Blob)
+    const blob = new Blob([dataToSave], { type: 'application/json' });
+    const formData = new FormData();
+    formData.append('chat_id', cleanChannelId);
+    formData.append('document', blob, 'orland_elections.json');
+    formData.append('caption', `Election Matrix Update: ${new Date().toLocaleString()}`);
 
-    fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, {
+    // Use sendDocument instead of sendMessage to bypass character limits
+    fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendDocument`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            chat_id: cleanChannelId,
-            text: dataToSave
-        })
+        body: formData
     })
     .then(res => {
         if (res.ok) {
-            console.log("Global cloud matrix synced to Telegram channel node.");
-            document.getElementById('saveStatus').textContent = "Online (Synced)";
+            console.log("Global cloud matrix synced to Telegram via File Upload.");
+            document.getElementById('saveStatus').textContent = "Online (File Synced)";
             document.getElementById('saveStatus').className = "text-emerald-400 font-bold";
         } else {
             console.error("Telegram API Error");
