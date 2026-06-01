@@ -1,1 +1,11 @@
-[]
+[
+  {
+    "state": "Orlay",
+    "county": "Arveaux",
+    "votes": {
+      "NDP": 38000,
+      "IDP": 39750,
+      "NCP": 89
+    }
+  }
+]
