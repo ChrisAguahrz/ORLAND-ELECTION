@@ -25,7 +25,7 @@
                 <div class="w-10 h-10 bg-amber-500 rounded flex items-center justify-center font-black text-slate-950 text-xl tracking-tighter shadow-lg shadow-amber-500/20">OCE</div>
                 <div>
                     <h1 class="text-xs font-black tracking-wider text-amber-400 uppercase">Orish Council of Elections</h1>
-                    <p class="text-[10px] text-slate-400 tracking-tight font-semibold">COUNCIL  STATISTICS ♧ </p>
+                    <p class="text-[10px] text-slate-400 tracking-tight font-semibold">COUNCIL% OF STATISTICS ♧ </p>
                 </div>
             </div>
 
@@ -478,17 +478,19 @@ async function initializeCoreRepositoryEngine() {
             const messages = tempDiv.querySelectorAll('.tgme_widget_message_text');
             
             if (messages.length > 0) {
-                // Grab the absolute latest post at the bottom of the feed
-                const latestMessageText = messages[messages.length - 1].innerText.trim();
-                
-                // Validate if the text looks like election JSON before processing
-                if (latestMessageText.startsWith('[') || latestMessageText.startsWith('{')) {
-                    db.elections = JSON.parse(latestMessageText);
-                    
-                    // Force your UI rendering pipelines to display the downloaded database
-                    if (typeof compileElectionDashboardCalculations === "function") compileElectionDashboardCalculations();
-                    if (typeof renderElectionCardsGrid === "function") renderElectionCardsGrid();
-                    return; // Successfully updated from live cloud data!
+                // Search backwards for the latest valid JSON message
+                for (let i = messages.length - 1; i >= 0; i--) {
+                    const latestMessageText = messages[i].innerText.trim();
+                    if (latestMessageText.startsWith('[') || latestMessageText.startsWith('{')) {
+                        try {
+                            db.elections = JSON.parse(latestMessageText);
+                            if (typeof compileElectionDashboardCalculations === "function") compileElectionDashboardCalculations();
+                            if (typeof renderElectionCardsGrid === "function") renderElectionCardsGrid();
+                            return; 
+                        } catch (e) {
+                            console.warn("Found JSON-like message but failed to parse:", e);
+                        }
+                    }
                 }
             }
         }
@@ -507,27 +509,41 @@ function saveStateToRepositoryCache() {
     localStorage.setItem('OCE_VOTE_REPOSITORY_CACHE_V9', JSON.stringify(db));
 
     // PACK AND SEND LIVE DATA TO TELEGRAM CLOUD CHANNEL
+    const cleanChannelId = TG_CHANNEL_ID.startsWith('@') ? TG_CHANNEL_ID : `@${TG_CHANNEL_ID}`;
+    const dataToSave = JSON.stringify(db.elections);
+    
+    // Telegram message limit is 4096 characters
+    if (dataToSave.length > 4000) {
+        console.error("Data size exceeds Telegram limit");
+        alert("Warning: Data is too large for Telegram storage. Local backup saved, but cloud sync may fail.");
+    }
+
     fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    chat_id: TG_CHANNEL_ID,
-    text: JSON.stringify(db.elections)
-  })
-})
-.then(async (res) => {
-  const data = await res.json();
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            chat_id: cleanChannelId,
+            text: dataToSave
+        })
+    })
+    .then(res => {
+        if (res.ok) {
+            console.log("Global cloud matrix synced to Telegram channel node.");
+            document.getElementById('saveStatus').textContent = "Online (Synced)";
+            document.getElementById('saveStatus').className = "text-emerald-400 font-bold";
+        } else {
+            console.error("Telegram API Error");
+            document.getElementById('saveStatus').textContent = "Sync Error";
+            document.getElementById('saveStatus').className = "text-rose-400 font-bold";
+        }
+    })
+    .catch(err => {
+        console.error("Cloud broadcast network failure:", err);
+        document.getElementById('saveStatus').textContent = "Offline (Error)";
+        document.getElementById('saveStatus').className = "text-rose-400 font-bold";
+    });
+}
 
-  if (!res.ok) {
-    console.error("Telegram ERROR:", data);
-    return;
-  }
-
-  console.log("Telegram SUCCESS:", data);
-})
-.catch(err => {
-  console.error("Network failure (no internet / blocked request):", err);
-});
 
         // DOM ELEMENTS REFERENCE BANK
         const viewPanels = {
