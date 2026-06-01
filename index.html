@@ -24,9 +24,8 @@
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 bg-amber-500 rounded flex items-center justify-center font-black text-slate-950 text-xl tracking-tighter shadow-lg shadow-amber-500/20">OCE</div>
                 <div>
-                    <h1 class="text-xs font-black tracking-wider text-amber-400 uppercase">Orish Counci
-                        îl of Elections</h1>
-                    <p class="text-[10px] text-slate-400 tracking-tight font-semibold">BUREAU OF STATISTICS ♧ </p>
+                    <h1 class="text-xs font-black tracking-wider text-amber-400 uppercase">Orish Council of Elections</h1>
+                    <p class="text-[10px] text-slate-400 tracking-tight font-semibold">COUNCIL OF STATISTICS ♧ </p>
                 </div>
             </div>
 
@@ -507,24 +506,18 @@ function saveStateToRepositoryCache() {
     // Keep local storage active as a fallback local backup
     localStorage.setItem('OCE_VOTE_REPOSITORY_CACHE_V9', JSON.stringify(db));
 
-                // ================== GLOBAL REMOTE BACKUP SYNC TO LIVE TELEGRAM CLOUD CHANNEL
-        var compressedPayload = JSON.stringify(db.elections);
-
-        fetch('https://api.telegram.org/bot' + TG_BOT_TOKEN + '/sendMessage', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id: '@' + TG_CHANNEL_ID,
-                text: compressedPayload
-            })
+    // PACK AND SEND LIVE DATA TO TELEGRAM CLOUD CHANNEL
+    fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            chat_id: `@${TG_CHANNEL_ID}`,
+            text: JSON.stringify(db.elections) // Converts your dataset to a text string
         })
-        .then(function(res) {
-            console.log("Network request completed.");
-        })
-        .catch(function(err) {
-            console.error("Network request failed:", err);
-        });
-
+    })
+    .then(res => console.log("Global cloud matrix synced to Telegram channel node."))
+    .catch(err => console.error("Cloud broadcast network failure:", err));
+}
 
 
         // DOM ELEMENTS REFERENCE BANK
