@@ -25,7 +25,7 @@
                 <div class="w-10 h-10 bg-amber-500 rounded flex items-center justify-center font-black text-slate-950 text-xl tracking-tighter shadow-lg shadow-amber-500/20">OCE</div>
                 <div>
                     <h1 class="text-xs font-black tracking-wider text-amber-400 uppercase">Orish Council of Elections</h1>
-                    <p class="text-[10px] text-slate-400 tracking-tight font-semibold">COUNCIL OF STATISTICS ♧ </p>
+                    <p class="text-[10px] text-slate-400 tracking-tight font-semibold">COUNCIL% OF STATISTICS ♧ </p>
                 </div>
             </div>
 
@@ -443,7 +443,12 @@ let selectedReportingTab = "state";
 let selectedCandProfileTab = "state";
 let isLabelsEnabled = false;
 let activeProfileCandidateId = null; 
-let historicalDb1h = null; // Stores data from 1 hour ago for growth comparison
+let historicalDb1h = null; 
+let geoStatesJson = null;
+let geoCountiesJson = null;
+let manualMapBindings = { states: {}, counties: {} };
+let currentElectionCandidates = [];
+let currentElectionObject = null;
 
 // PARTY STYLE AND HASH CORES MAP CONFIGS
 // GLOBAL REGISTRY FOR REGISTERED POLITICAL ENTITIES
@@ -465,6 +470,14 @@ function getOrCreateDynamicPartyColor(partyName) {
 
 // CORE CACHE INITIALIZER BLOCK (No random candidates allowed)
 async function initializeCoreRepositoryEngine() {
+    // 1. INSTANT LOAD: Load from local cache first so the UI pops up immediately
+    const cache = localStorage.getItem('OCE_VOTE_REPOSITORY_CACHE_V9');
+    if (cache) {
+        db = JSON.parse(cache);
+        if (typeof renderElectionCardsGrid === "function") renderElectionCardsGrid();
+    }
+
+    // 2. BACKGROUND SYNC: Talk to Telegram while the user is already looking at the local data
     try {
         const response = await fetch(`https://corsproxy.io/?https://t.me/s/${TG_CHANNEL_ID}?nocache=${Date.now()}`);
         if (response.ok) {
@@ -475,7 +488,6 @@ async function initializeCoreRepositoryEngine() {
             const docMessages = Array.from(tempDiv.querySelectorAll('.tgme_widget_message_document_wrap'));
             
             if (docMessages.length > 0) {
-                // LATEST DATA
                 const latestDoc = docMessages[docMessages.length - 1];
                 const latestLink = latestDoc.querySelector('a.tgme_widget_message_document_actions');
                 
@@ -483,14 +495,15 @@ async function initializeCoreRepositoryEngine() {
                     const fileResponse = await fetch(`https://corsproxy.io/?${latestLink.href}`);
                     if (fileResponse.ok) {
                         db.elections = await fileResponse.json();
+                        // Update UI with latest data silently
+                        if (typeof renderElectionCardsGrid === "function") renderElectionCardsGrid();
+                        if (currentActiveElectionId && typeof compileElectionDashboardCalculations === "function") compileElectionDashboardCalculations();
                     }
                 }
 
-                // HISTORICAL DATA (1 HOUR AGO)
-                // Telegram web preview usually shows ~20 messages. We search for one with a timestamp ~1hr old.
+                // Background fetch for 1-hour history
                 const oneHourAgo = Date.now() - (60 * 60 * 1000);
                 let bestHistoricalDoc = null;
-
                 for (let i = docMessages.length - 2; i >= 0; i--) {
                     const msgWrap = docMessages[i].closest('.tgme_widget_message');
                     if (msgWrap) {
@@ -511,39 +524,15 @@ async function initializeCoreRepositoryEngine() {
                         const histResponse = await fetch(`https://corsproxy.io/?${histLink.href}`);
                         if (histResponse.ok) {
                             historicalDb1h = await histResponse.json();
+                            if (currentActiveElectionId && typeof compileElectionDashboardCalculations === "function") compileElectionDashboardCalculations();
                         }
-                    }
-                }
-
-                if (db.elections.length > 0) {
-                    if (typeof compileElectionDashboardCalculations === "function") compileElectionDashboardCalculations();
-                    if (typeof renderElectionCardsGrid === "function") renderElectionCardsGrid();
-                    return;
-                }
-            }
-
-            // Fallback to text message scraping if no file is found
-            const messages = tempDiv.querySelectorAll('.tgme_widget_message_text');
-            if (messages.length > 0) {
-                for (let i = messages.length - 1; i >= 0; i--) {
-                    const latestMessageText = messages[i].innerText.trim();
-                    if (latestMessageText.startsWith('[') || latestMessageText.startsWith('{')) {
-                        try {
-                            db.elections = JSON.parse(latestMessageText);
-                            if (typeof compileElectionDashboardCalculations === "function") compileElectionDashboardCalculations();
-                            if (typeof renderElectionCardsGrid === "function") renderElectionCardsGrid();
-                            return; 
-                        } catch (e) { console.warn("JSON parse fail:", e); }
                     }
                 }
             }
         }
     } catch (e) {
-        console.error("Telegram cloud bridge offline:", e);
+        console.error("Telegram cloud sync failed, staying on local data:", e);
     }
-
-    const cache = localStorage.getItem('OCE_VOTE_REPOSITORY_CACHE_V9');
-    if (cache) db = JSON.parse(cache);
 }
 
 
