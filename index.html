@@ -508,17 +508,26 @@ function saveStateToRepositoryCache() {
 
     // PACK AND SEND LIVE DATA TO TELEGRAM CLOUD CHANNEL
     fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            chat_id: `@${TG_CHANNEL_ID}`,
-            text: JSON.stringify(db.elections) // Converts your dataset to a text string
-        })
-    })
-    .then(res => console.log("Global cloud matrix synced to Telegram channel node."))
-    .catch(err => console.error("Cloud broadcast network failure:", err));
-}
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    chat_id: TG_CHANNEL_ID,
+    text: JSON.stringify(db.elections)
+  })
+})
+.then(async (res) => {
+  const data = await res.json();
 
+  if (!res.ok) {
+    console.error("Telegram ERROR:", data);
+    return;
+  }
+
+  console.log("Telegram SUCCESS:", data);
+})
+.catch(err => {
+  console.error("Network failure (no internet / blocked request):", err);
+});
 
         // DOM ELEMENTS REFERENCE BANK
         const viewPanels = {
