@@ -641,12 +641,11 @@ function saveStateToRepositoryCache() {
                     db.counties = await cRes.json();
                     let extractedStates = [...new Set(db.counties.map(c => c.state))].sort();
                     db.states = extractedStates.map(st => {
-                        let totalVoters = db.counties.filter(c => c.state === st).reduce((acc, curr) => acc + curr.registered_voters, 0);
-                        return { name: st, region: db.counties.find(c => c.state === st).region, registered_voters: totalVoters };
-                    });
                 }
             } catch(e) { console.error("Resource pipeline dynamic asset injection failure:", e); }
 
+            // Kick off the rendering engine only after data is completely loaded
+            if (typeof initializeCoreRepositoryEngine === 'function') initializeCoreRepositoryEngine();
             try {
                 const sGeo = await fetch('(A) ORLAND STATES .json');
                 if(sGeo.ok) geoStatesJson = await sGeo.json();
@@ -1738,7 +1737,6 @@ function triggerCandidateImageUpdate(electionId, candidateId) {
 
 
         // START EXECUTION ON INITIALIZATION SEED PIPELINES
-        initializeCoreRepositoryEngine();
         loadAsynchronousResourceFiles();
     </script>
 </body>
