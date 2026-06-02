@@ -608,22 +608,36 @@ function saveStateToRepositoryCache() {
         document.getElementById('navDemographicsBtn').addEventListener('click', () => { switchDisplayViewportPanel('demographics'); renderDemographicsMetricsWorkspace(); });
         document.getElementById('closeReportingWindowBtn').addEventListener('click', () => switchDisplayViewportPanel('home'));
 
-                // FILE LOADING PIPELINES
+                        // FILE LOADING PIPELINES
         async function loadAsynchronousResourceFiles() {
             try {
-                // Fetch the core Orland election JSON database first
-                const eRes = await fetch('orland_elections.json');
-                if(eRes.ok) {
-                    db.elections = await eRes.json();
+                // 1. Fetch directly from your public Telegram channel preview
+                const tgResponse = await fetch('https://cors-anywhere.herokuapp.com/https://t.me/s/orland_db_2026');
+                if (tgResponse.ok) {
+                    const htmlText = await tgResponse.text();
+                    
+                    // 2. Parse the HTML to find your latest JSON message text
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(htmlText, 'text/html');
+                    const messages = doc.querySelectorAll('.tgme_widget_message_text');
+                    
+                    // Grab the very last message (the newest update)
+                    if (messages.length > 0) {
+                        const latestMessageText = messages[messages.length - 1].innerText;
+                        
+                        // 3. Inject it straight into your app's memory
+                        db.elections = JSON.parse(latestMessageText);
+                    }
                 }
-            } catch(e) { console.error("Failed to fetch orland_elections.json from server layout:", e); }
+            } catch(e) { 
+                console.error("Failed to automatically stream data from Telegram:", e); 
+            }
 
             try {
                 // Fetch Core County Profiles JSON Database
                 const cRes = await fetch('COUNTY.json');
                 if(cRes.ok) {
                     db.counties = await cRes.json();
-                    // Extract unique state names from the dataset setup
                     let extractedStates = [...new Set(db.counties.map(c => c.state))].sort();
                     db.states = extractedStates.map(st => {
                         let totalVoters = db.counties.filter(c => c.state === st).reduce((acc, curr) => acc + curr.registered_voters, 0);
