@@ -608,8 +608,16 @@ function saveStateToRepositoryCache() {
         document.getElementById('navDemographicsBtn').addEventListener('click', () => { switchDisplayViewportPanel('demographics'); renderDemographicsMetricsWorkspace(); });
         document.getElementById('closeReportingWindowBtn').addEventListener('click', () => switchDisplayViewportPanel('home'));
 
-        // FILE LOADING PIPELINES
+                // FILE LOADING PIPELINES
         async function loadAsynchronousResourceFiles() {
+            try {
+                // Fetch the core Orland election JSON database first
+                const eRes = await fetch('orland_elections.json');
+                if(eRes.ok) {
+                    db.elections = await eRes.json();
+                }
+            } catch(e) { console.error("Failed to fetch orland_elections.json from server layout:", e); }
+
             try {
                 // Fetch Core County Profiles JSON Database
                 const cRes = await fetch('COUNTY.json');
@@ -636,6 +644,7 @@ function saveStateToRepositoryCache() {
 
             renderElectionCardsGrid();
         }
+
 
         // ================= BUSINESS LOGIC: ELECTIONS RENDER HUB =================
         function renderElectionCardsGrid() {
