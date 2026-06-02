@@ -22,10 +22,10 @@
     <aside class="w-full md:w-64 bg-slate-900 border-b md:border-b-0 md:border-r border-slate-800 flex flex-col justify-between p-4 z-30 shadow-2xl shrink-0">
         <div class="flex flex-col gap-6">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-amber-500 rounded flex items-center justify-center font-black text-slate-950 text-xl tracking-tighter shadow-lg shadow-amber-500/20">OCE</div>
+                <div class="w-10 h-10 bg-amber-500 rounded flex items-center justify-center font-black text-slate-950 text-xl tracking-tighter shadow-lg shadow-amber-500/20"> OCE </div>
                 <div>
-                    <h1 class="text-xs font-black tracking-wider text-amber-400 uppercase">Orish Council of Elections</h1>
-                    <p class="text-[10px] text-slate-400 tracking-tight font-semibold">COUNCIL% OF STATISTICS ♧ </p>
+                    <h1 class="text-xs font-black tracking-wider text-amber-400 uppercase"> ORISH Council of Elections</h1>
+                    <p class="text-[10px] text-slate-400 tracking-tight font-semibold">COUNCIL OF STATISTICS ♧ </p>
                 </div>
             </div>
 
@@ -39,7 +39,7 @@
         <div class="border-t border-slate-800/80 pt-3 mt-auto">
             <div class="flex justify-between items-center text-[10px] text-slate-500 font-mono">
                 <span>System Pipeline Status:</span>
-                <span id="saveStatus" class="text-emerald-400 font-bold">Online...</span>
+                <span id="saveStatus" class="text-emerald-400 font-bold">Online..</span>
             </div>
             <div class="text-[9px] text-slate-500 italic mt-1">Commonwealth of Orland Sovereign Platform v9.4</div>
         </div>
@@ -122,11 +122,7 @@
                         <div id="mapReportingContainer" class="flex-1 w-full min-h-[350px] md:min-h-0 bg-white relative flex items-center justify-center">
                             <svg id="reportingMapCanvas" class="w-full h-full text-slate-900 select-none"></svg>
                             
-                            <div id="manualAlignmentAlertBox" class="absolute bottom-3 right-3 bg-slate-950/95 border border-rose-900/60 p-2.5 rounded-xl text-xs max-w-sm hidden flex flex-col gap-1.5 z-20 text-slate-300 shadow-2xl">
-                                <div class="font-black text-rose-400 uppercase text-[10px] tracking-wide flex items-center gap-1">⚠️ Boundary Alignment Ledger Misalignment</div>
-                                <div class="text-[11px] leading-tight text-slate-400">Some entities between the profile metrics array database and GeoJSON vector canvas profiles failed alignment. Fix required below.</div>
-                                <button id="openAlignmentWizardBtn" class="w-full bg-rose-950/60 hover:bg-rose-900/80 text-rose-400 border border-rose-800 px-2 py-1 rounded text-[10px] font-mono transition">Initialize Manual Resolution Hub</button>
-                            </div>
+<!-- Alignment alert removed -->
                         </div>
                     </div>
                 </div>
@@ -442,7 +438,13 @@ let currentActiveElectionId = null;
 let selectedReportingTab = "state"; 
 let selectedCandProfileTab = "state";
 let isLabelsEnabled = false;
-let activeProfileCandidateId = null; // Add this line to keep track of the current candidate in view
+let activeProfileCandidateId = null; 
+let historicalDb1h = null; 
+let geoStatesJson = null;
+let geoCountiesJson = null;
+let manualMapBindings = { states: {}, counties: {} };
+let currentElectionCandidates = [];
+let currentElectionObject = null;
 
 // PARTY STYLE AND HASH CORES MAP CONFIGS
 // GLOBAL REGISTRY FOR REGISTERED POLITICAL ENTITIES
@@ -464,57 +466,79 @@ function getOrCreateDynamicPartyColor(partyName) {
 
 // CORE CACHE INITIALIZER BLOCK (No random candidates allowed)
 async function initializeCoreRepositoryEngine() {
+    // 1. INSTANT LOAD: Load from local cache first so the UI pops up immediately
+    const cache = localStorage.getItem('OCE_VOTE_REPOSITORY_CACHE_V9');
+    if (cache) {
+        db = JSON.parse(cache);
+        if (typeof renderElectionCardsGrid === "function") renderElectionCardsGrid();
+    }
+
+    // 2. BACKGROUND SYNC: Talk to Telegram while the user is already looking at the local data
     try {
-        // Scrapes the public embed preview feed of your database channel
         const response = await fetch(`https://corsproxy.io/?https://t.me/s/${TG_CHANNEL_ID}?nocache=${Date.now()}`);
         if (response.ok) {
             const htmlText = await response.text();
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = htmlText;
             
-            // Look for file download links (Telegram web preview uses .tgme_widget_message_document_wrap)
-            const docMessages = tempDiv.querySelectorAll('.tgme_widget_message_document_wrap');
+            const docMessages = Array.from(tempDiv.querySelectorAll('.tgme_widget_message_document_wrap'));
             
             if (docMessages.length > 0) {
-                // Get the most recent document message
                 const latestDoc = docMessages[docMessages.length - 1];
-                const downloadLink = latestDoc.querySelector('a.tgme_widget_message_document_actions');
+                const latestLink = latestDoc.querySelector('a.tgme_widget_message_document_actions');
                 
-                if (downloadLink && downloadLink.href) {
-                    // Fetch the file content from the download URL
-                    const fileResponse = await fetch(`https://corsproxy.io/?${downloadLink.href}`);
+                if (latestLink && latestLink.href) {
+                    const fileResponse = await fetch(`https://corsproxy.io/?${latestLink.href}`);
                     if (fileResponse.ok) {
-                        const fileData = await fileResponse.json();
-                        db.elections = fileData;
-                        if (typeof compileElectionDashboardCalculations === "function") compileElectionDashboardCalculations();
+                        db.elections = await fileResponse.json();
+                        // Update UI with latest data silently
                         if (typeof renderElectionCardsGrid === "function") renderElectionCardsGrid();
-                        return;
+                        if (currentActiveElectionId && typeof compileElectionDashboardCalculations === "function") compileElectionDashboardCalculations();
                     }
                 }
-            }
 
-            // Fallback to text message scraping if no file is found
-            const messages = tempDiv.querySelectorAll('.tgme_widget_message_text');
-            if (messages.length > 0) {
-                for (let i = messages.length - 1; i >= 0; i--) {
-                    const latestMessageText = messages[i].innerText.trim();
-                    if (latestMessageText.startsWith('[') || latestMessageText.startsWith('{')) {
-                        try {
-                            db.elections = JSON.parse(latestMessageText);
-                            if (typeof compileElectionDashboardCalculations === "function") compileElectionDashboardCalculations();
-                            if (typeof renderElectionCardsGrid === "function") renderElectionCardsGrid();
-                            return; 
-                        } catch (e) { console.warn("JSON parse fail:", e); }
+                // Background fetch for 1-hour history (or oldest available)
+                const oneHourAgo = Date.now() - (60 * 60 * 1000);
+                let bestHistoricalDoc = null;
+                
+                // Try to find a message from ~1 hour ago
+                for (let i = docMessages.length - 2; i >= 0; i--) {
+                    const msgWrap = docMessages[i].closest('.tgme_widget_message');
+                    if (msgWrap) {
+                        const timeEl = msgWrap.querySelector('time');
+                        if (timeEl) {
+                            const msgTime = new Date(timeEl.getAttribute('datetime')).getTime();
+                            if (msgTime <= oneHourAgo) {
+                                bestHistoricalDoc = docMessages[i];
+                                break; 
+                            }
+                        }
+                    }
+                }
+
+                // If no message is 1 hour old yet, take the oldest one we can see (the first save)
+                if (!bestHistoricalDoc && docMessages.length > 1) {
+                    bestHistoricalDoc = docMessages[0];
+                }
+
+                if (bestHistoricalDoc) {
+                    const histLink = bestHistoricalDoc.querySelector('a.tgme_widget_message_document_actions');
+                    if (histLink && histLink.href) {
+                        const histResponse = await fetch(`https://corsproxy.io/?${histLink.href}`);
+                        if (histResponse.ok) {
+                            historicalDb1h = await histResponse.json();
+                            // Refresh the dashboard to show the new growth numbers
+                            if (currentActiveElectionId && typeof compileElectionDashboardCalculations === "function") {
+                                compileElectionDashboardCalculations();
+                            }
+                        }
                     }
                 }
             }
         }
     } catch (e) {
-        console.error("Telegram cloud bridge offline:", e);
+        console.error("Telegram cloud sync failed, staying on local data:", e);
     }
-
-    const cache = localStorage.getItem('OCE_VOTE_REPOSITORY_CACHE_V9');
-    if (cache) db = JSON.parse(cache);
 }
 
 
@@ -584,14 +608,37 @@ function saveStateToRepositoryCache() {
         document.getElementById('navDemographicsBtn').addEventListener('click', () => { switchDisplayViewportPanel('demographics'); renderDemographicsMetricsWorkspace(); });
         document.getElementById('closeReportingWindowBtn').addEventListener('click', () => switchDisplayViewportPanel('home'));
 
-        // FILE LOADING PIPELINES
+                                                        // FILE LOADING PIPELINES
         async function loadAsynchronousResourceFiles() {
+            try {
+                // Fetching via the bulletproof RSS feed pipeline (Zero CORS restrictions)
+                const tgResponse = await fetch('https://feed2js.org/feed2js.php?src=https://t.me/s/orland_db_2026/feed&chan=y&num=1&desc=1&html=p&generate=json');
+                if (tgResponse.ok) {
+                    const feedData = await tgResponse.json();
+                    
+                    // Check if the feed returned items
+                    if (feedData && feedData.length > 0) {
+                        // The description field holds the text contents of your latest telegram post
+                        const latestPostContent = feedData[0].description;
+                        
+                        // Strip out any HTML tags Telegram wraps around the text
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = latestPostContent;
+                        const cleanText = tempDiv.textContent || tempDiv.innerText || "";
+                        
+                        // Parse your live database dump straight into the app memory
+                        db.elections = JSON.parse(cleanText.trim());
+                    }
+                }
+            } catch(e) { 
+                console.error("Automated Telegram live database sync failure:", e); 
+            }
+
             try {
                 // Fetch Core County Profiles JSON Database
                 const cRes = await fetch('COUNTY.json');
                 if(cRes.ok) {
                     db.counties = await cRes.json();
-                    // Extract unique state names from the dataset setup
                     let extractedStates = [...new Set(db.counties.map(c => c.state))].sort();
                     db.states = extractedStates.map(st => {
                         let totalVoters = db.counties.filter(c => c.state === st).reduce((acc, curr) => acc + curr.registered_voters, 0);
@@ -612,6 +659,8 @@ function saveStateToRepositoryCache() {
 
             renderElectionCardsGrid();
         }
+
+
 
         // ================= BUSINESS LOGIC: ELECTIONS RENDER HUB =================
         function renderElectionCardsGrid() {
@@ -650,7 +699,10 @@ function saveStateToRepositoryCache() {
         function openElectionReportingDashboard(electionId) {
             currentActiveElectionId = electionId;
             switchDisplayViewportPanel('reporting');
-            compileElectionDashboardCalculations();
+            // Use requestAnimationFrame to prevent UI freeze during heavy calculation/render
+            requestAnimationFrame(() => {
+                compileElectionDashboardCalculations();
+            });
         }
 
         // ================= CALCULATION AND ANALYSIS PIPELINE COMPILERS =================
@@ -697,10 +749,31 @@ function saveStateToRepositoryCache() {
             const container = document.getElementById('reportingCandidatesList');
             container.innerHTML = '';
 
-            candidates.forEach((c, idx) => {
+                candidates.forEach((c, idx) => {
                 let pct = totalValidVotes > 0 ? (c.totalVotesAggregate / totalValidVotes) * 100 : 0;
-                let trendIcon = c.growth >= 0 ? "📈" : "📉";
-                let trendColor = c.growth >= 0 ? "text-emerald-400" : "text-rose-400";
+                
+                // CALCULATE GROWTH BASED ON HISTORICAL DATA
+                let calculatedGrowth = 0;
+                if (historicalDb1h && Array.isArray(historicalDb1h)) {
+                    const oldElection = historicalDb1h.find(e => e.id === election.id);
+                    if (oldElection && oldElection.candidates) {
+                        const oldCand = oldElection.candidates.find(oc => oc.id === c.id);
+                        if (oldCand && oldCand.votes) {
+                            const oldVotes = Object.values(oldCand.votes).reduce((a, b) => a + b, 0);
+                            const oldTotal = oldElection.candidates.reduce((acc, curr) => {
+                                const v = curr.votes ? Object.values(curr.votes).reduce((sum, val) => sum + val, 0) : 0;
+                                return acc + v;
+                            }, 0);
+                            const oldPct = oldTotal > 0 ? (oldVotes / oldTotal) * 100 : 0;
+                            calculatedGrowth = (pct - oldPct).toFixed(2);
+                        }
+                    }
+                } else {
+                    calculatedGrowth = 0; 
+                }
+
+                let trendIcon = calculatedGrowth >= 0 ? "📈" : "📉";
+                let trendColor = calculatedGrowth >= 0 ? "text-emerald-400" : "text-rose-400";
                 
                 // Track geometric boundary counts won
                 let statesWonCount = 0;
@@ -750,7 +823,7 @@ function saveStateToRepositoryCache() {
                         <div class="grid grid-cols-3 gap-2 border-t border-slate-800/60 pt-2 mt-1 text-[10px] font-mono text-slate-400">
                             <div>Won States: <b class="text-slate-200">${election.type === 'national' ? statesWonCount : 'N/A'}</b></div>
                             <div>Won Counties: <b class="text-slate-200">${countiesWonCount}</b></div>
-                            <div class="${trendColor} text-right font-bold">${trendIcon} ${c.growth > 0 ? '+' : ''}${c.growth}%</div>
+                            <div class="${trendColor} text-right font-bold" title="Growth from 1hr ago">${trendIcon} ${calculatedGrowth > 0 ? '+' : ''}${calculatedGrowth}%</div>
                         </div>
                     </div>
                 `;
@@ -1043,54 +1116,113 @@ function saveStateToRepositoryCache() {
             // Ensure we filter out unreadable values here too
             const validGeoVectors = unmatchedGeoVectors.filter(v => v && v.toString().trim() !== "" && !v.toString().includes("..."));
 
-            if(validGeoVectors.length === 0) {
-                rightVectorContainer.innerHTML = `<div class="p-3 text-xs text-slate-400 italic text-center">No missing map shapes found.</div>`;
-            } else {
-                validGeoVectors.forEach(vectorName => {
-                    // Skip if already manually bound
-                    if(manualMapBindings[currentTab === 'state' ? 'states' : 'counties'][vectorName.toLowerCase().trim()]) return;
+// =========================================================================
+// ================= ALIGNMENT INTERACTIVE WIZARD COMPLEX =================
+// =========================================================================
+function openAlignmentSynchronizationWizard(unmatchedGeoVectors, currentTab) {
+    // Open modal wrapper container
+    document.getElementById('alignmentWizardModal').classList.remove('hidden');
 
-                    const el = document.createElement('div');
-                    el.className = "p-2.5 my-1 text-sm text-rose-300 bg-slate-800/60 hover:bg-slate-700/80 rounded cursor-pointer border border-transparent transition-all font-medium block";
-                    el.style.textAlign = "left";
-                    el.textContent = vectorName;
-                    
-                    el.onclick = () => {
-                        Array.from(rightVectorContainer.children).forEach(c => c.classList.remove('border-emerald-500', 'bg-slate-700'));
-                        el.classList.add('border-emerald-500', 'bg-slate-700');
-                        selectedGeoVector = vectorName;
-                        updateLinkageText();
-                    };
-                    rightVectorContainer.appendChild(el);
-                });
-            }
+    // Select UI lists based on exact HTML element IDs
+    const leftPoolContainer = document.getElementById('wizardUnmatchedRecordsList');
+    const rightVectorContainer = document.getElementById('wizardUnmatchedVectorsList');
+    
+    // Wipe previous HTML outputs to rebuild fresh arrays cleanly
+    leftPoolContainer.innerHTML = '';
+    rightVectorContainer.innerHTML = '';
 
-            // Text output linkage string preview handler
-            const linkDisplay = document.getElementById('SelectedPathLinkageLabel') || document.querySelector('.selected-linkage-text');
-            function updateLinkageText() {
-                if(linkDisplay) {
-                    linkDisplay.textContent = `${selectedDbRecord || '???'} ──► ${selectedGeoVector || '???'}`;
-                }
-            }
+    let selectedDbRecord = null;
+    let selectedGeoVector = null;
 
-            // 4. Bind Button Action Execution
-            const bindBtn = document.getElementById('bindPathConfigurationBtn') || document.querySelector('.bind-path-btn');
-            bindBtn.onclick = () => {
-                if(!selectedDbRecord || !selectedGeoVector) {
-                    alert("Please select one profile name from the pool and one vector layer shape to bridge.");
-                    return;
-                }
+    // 1. Gather unmatched elements from database arrays and filter out corrupt/empty strings
+    let unmatchedDbEntities = [];
+    if(currentTab === 'state') {
+        unmatchedDbEntities = db.states.filter(s => {
+            if (!s.name || s.name.trim() === "" || s.name.includes("...")) return false; 
+            
+            let isMatched = geoStatesJson.features.some(f => (f.properties.STATE || f.properties.state || f.properties.name || "").toLowerCase().trim() === s.name.toLowerCase().trim());
+            let hasManualLink = db.unmatchedManualLinks[s.name.toLowerCase().trim()];
+            return !isMatched && !hasManualLink;
+        }).map(s => s.name.trim());
+    } else {
+        unmatchedDbEntities = db.counties.filter(c => {
+            if (!c.county || c.county.trim() === "" || c.county.includes("...")) return false; 
+            
+            let isMatched = geoCountiesJson.features.some(f => (f.properties.County || f.properties.county || f.properties.name || "").toLowerCase().trim() === c.county.toLowerCase().trim());
+            let hasManualLink = db.unmatchedManualLinks[c.id];
+            return !isMatched && !hasManualLink;
+        }).map(c => c.county.trim());
+    }
 
-                // Save to local storage ledger immediately 
-                saveManualMapBinding(currentTab === 'state' ? 'states' : 'counties', selectedGeoVector, selectedDbRecord);
-                
-                // Refresh vector canvas matrix shapes instantly
-                renderReportingGeographicSvgMap(currentElectionCandidates, currentElectionObject);
-                
-                // Refresh wizard interface instantly to drop matched pairs
-                openAlignmentSynchronizationWizard(validGeoVectors.filter(v => v !== selectedGeoVector), currentTab);
+    // 2. Populate Left Box: Clean text list of Unmatched Database Names
+    if(unmatchedDbEntities.length === 0) {
+        leftPoolContainer.innerHTML = `<div class="p-3 text-xs text-slate-500 italic text-center">All data nodes aligned.</div>`;
+    } else {
+        unmatchedDbEntities.forEach(entityName => {
+            const el = document.createElement('button');
+            el.className = "w-full text-left p-1.5 my-0.5 text-[11px] text-amber-500 bg-slate-900/50 hover:bg-slate-800 rounded border border-slate-800/40 transition-all font-mono truncate block";
+            el.textContent = entityName;
+            
+            el.onclick = () => {
+                Array.from(leftPoolContainer.children).forEach(c => c.classList.remove('border-amber-500', 'bg-slate-800'));
+                el.classList.add('border-amber-500', 'bg-slate-800');
+                selectedDbRecord = entityName;
+                updateLinkageText();
             };
+            leftPoolContainer.appendChild(el);
+        });
+    }
+
+    // 3. Populate Right Box: Unmatched GeoJSON Vector File Layer Shapes
+    const validGeoVectors = unmatchedGeoVectors.filter(v => v && v.toString().trim() !== "" && !v.toString().includes("..."));
+
+    if(validGeoVectors.length === 0) {
+        rightVectorContainer.innerHTML = `<div class="p-3 text-xs text-slate-500 italic text-center">No free vector tracks.</div>`;
+    } else {
+        validGeoVectors.forEach(vectorName => {
+            const el = document.createElement('button');
+            el.className = "w-full text-left p-1.5 my-0.5 text-[11px] text-slate-400 bg-slate-900/50 hover:bg-slate-800 rounded border border-slate-800/40 transition-all font-mono truncate block";
+            el.textContent = vectorName;
+            
+            el.onclick = () => {
+                Array.from(rightVectorContainer.children).forEach(c => c.classList.remove('border-emerald-500', 'bg-slate-800'));
+                el.classList.add('border-emerald-500', 'bg-slate-800');
+                selectedGeoVector = vectorName;
+                updateLinkageText();
+            };
+            rightVectorContainer.appendChild(el);
+        });
+    }
+
+    // Text output linkage string preview handler
+    const linkDisplay = document.getElementById('wizardSelectedLinkageText');
+    function updateLinkageText() {
+        if(linkDisplay) {
+            linkDisplay.textContent = `${selectedDbRecord || '???'} ➔ ${selectedGeoVector || '???'}`;
         }
+    }
+
+    // 4. Bind Button Action Execution Pipeline
+    const bindBtn = document.getElementById('commitWizardLinkageBtn');
+    bindBtn.onclick = () => {
+        if(!selectedDbRecord || !selectedGeoVector) {
+            alert("Please map a valid structural linkage pairs frame first.");
+            return;
+        }
+
+        // Append the tracking link directly into the data configuration map
+        db.unmatchedManualLinks[selectedGeoVector.toLowerCase().trim()] = selectedDbRecord;
+        
+        // Trigger local cache dump pipeline 
+        saveStateToRepositoryCache();
+        
+        // Re-compile layout parameters instantly
+        compileElectionDashboardCalculations();
+        
+        // Refresh wizard interface instantly to clear out matched pairs
+        openAlignmentSynchronizationWizard(validGeoVectors.filter(v => v !== selectedGeoVector), currentTab);
+    };
+}
 
 
         function updateWizardLinkageText(rec, vec) {
@@ -1376,11 +1508,20 @@ document.getElementById('candProfileToggleCountyBtn').addEventListener('click', 
             el.candidates.forEach(c => {
                 let div = document.createElement('div');
                 div.className = "flex flex-col gap-1 bg-slate-900 p-2 rounded border border-slate-800";
+                
+                // Calculate current percentage for this candidate in this county
+                let currentVotes = c.votes[countyId] || 0;
+                let countyTotal = el.candidates.reduce((acc, cand) => acc + (cand.votes[countyId] || 0), 0);
+                let currentPct = countyTotal > 0 ? (currentVotes / countyTotal) * 100 : 0;
+
                 div.innerHTML = `
                     <label class="text-[10px] font-bold text-slate-300 uppercase">${c.name} (${c.party})</label>
                     <div class="flex gap-1.5 items-center">
                         <input type="number" id="inputVote-${c.id}" value="0" class="flex-1 bg-slate-950 border border-slate-700 rounded p-1 text-xs text-slate-100 font-mono focus:outline-none ${isFrozen?'disabled-input':''}" ${isFrozen?'disabled':''}>
-                        <span class="text-[9px] text-slate-500 font-mono">Current: ${c.votes[countyId] || 0}</span>
+                        <div class="flex flex-col items-end">
+                            <span class="text-[9px] text-slate-500 font-mono">Current: ${currentVotes.toLocaleString()}</span>
+                            <span class="text-[8px] text-amber-500 font-bold font-mono">${currentPct.toFixed(1)}%</span>
+                        </div>
                     </div>
                 `;
                 grid.appendChild(div);
