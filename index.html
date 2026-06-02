@@ -39,7 +39,7 @@
         <div class="border-t border-slate-800/80 pt-3 mt-auto">
             <div class="flex justify-between items-center text-[10px] text-slate-500 font-mono">
                 <span>System Pipeline Status:</span>
-                <span id="saveStatus" class="text-emerald-400 font-bold">Online..</span>
+                <span id="saveStatus" class="text-emerald-400 font-bold">Online...</span>
             </div>
             <div class="text-[9px] text-slate-500 italic mt-1">Commonwealth of Orland Sovereign Platform v9.4</div>
         </div>
@@ -608,24 +608,33 @@ function saveStateToRepositoryCache() {
         document.getElementById('navDemographicsBtn').addEventListener('click', () => { switchDisplayViewportPanel('demographics'); renderDemographicsMetricsWorkspace(); });
         document.getElementById('closeReportingWindowBtn').addEventListener('click', () => switchDisplayViewportPanel('home'));
 
-                                // FILE LOADING PIPELINES
+                                //        // FILE LOADING PIPELINES
         async function loadAsynchronousResourceFiles() {
             try {
-                // Fetch your public channel posts converted to a clean JSON stream
-                const tgResponse = await fetch('https://tg.i-c-a.su/json/orland_db_2026?limit=1');
+                // Using an open API proxy to break through Telegram's 403 block
+                const proxyUrl = 'https://api.allorigins.win/get?url=';
+                const targetUrl = encodeURIComponent('https://t.me/s/orland_db_2026');
+                
+                const tgResponse = await fetch(`${proxyUrl}${targetUrl}`);
                 if (tgResponse.ok) {
-                    const data = await tgResponse.json();
+                    const wrapper = await tgResponse.json();
+                    const htmlText = wrapper.contents; // This extracts the raw HTML text safely
                     
-                    // Check if there are messages and grab the latest one
-                    if (data && data.messages && data.messages.length > 0) {
-                        const latestMessageText = data.messages[0].message;
+                    // Parse the HTML to extract the text from your telegram channel posts
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(htmlText, 'text/html');
+                    const messages = doc.querySelectorAll('.tgme_widget_message_text');
+                    
+                    if (messages.length > 0) {
+                        // Grab your latest JSON database dump message
+                        const latestMessageText = messages[messages.length - 1].innerText.trim();
                         
-                        // Parse the text inside the message straight into your database
+                        // Feed it directly to the system
                         db.elections = JSON.parse(latestMessageText);
                     }
                 }
             } catch(e) { 
-                console.error("Telegram automated data stream blocked or failed:", e); 
+                console.error("Telegram automated stream bypass pipeline failure:", e); 
             }
 
             try {
@@ -653,7 +662,6 @@ function saveStateToRepositoryCache() {
 
             renderElectionCardsGrid();
         }
-
 
         // ================= BUSINESS LOGIC: ELECTIONS RENDER HUB =================
         function renderElectionCardsGrid() {
