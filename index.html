@@ -608,24 +608,30 @@ function saveStateToRepositoryCache() {
         document.getElementById('navDemographicsBtn').addEventListener('click', () => { switchDisplayViewportPanel('demographics'); renderDemographicsMetricsWorkspace(); });
         document.getElementById('closeReportingWindowBtn').addEventListener('click', () => switchDisplayViewportPanel('home'));
 
-                                                // FILE LOADING PIPELINES
+                                                        // FILE LOADING PIPELINES
         async function loadAsynchronousResourceFiles() {
             try {
-                // Fetching from a CORS-friendly open-source Telegram data bridge
-                const tgResponse = await fetch('https://tg.i-c-a.su/json/orland_db_2026?limit=1');
+                // Fetching via the bulletproof RSS feed pipeline (Zero CORS restrictions)
+                const tgResponse = await fetch('https://feed2js.org/feed2js.php?src=https://t.me/s/orland_db_2026/feed&chan=y&num=1&desc=1&html=p&generate=json');
                 if (tgResponse.ok) {
-                    const data = await tgResponse.json();
+                    const feedData = await tgResponse.json();
                     
-                    // Navigate the clean JSON structure to find your latest message post
-                    if (data && data.messages && data.messages.length > 0) {
-                        const latestMessageText = data.messages[0].message;
+                    // Check if the feed returned items
+                    if (feedData && feedData.length > 0) {
+                        // The description field holds the text contents of your latest telegram post
+                        const latestPostContent = feedData[0].description;
                         
-                        // Parse your election database straight into the app memory
-                        db.elections = JSON.parse(latestMessageText);
+                        // Strip out any HTML tags Telegram wraps around the text
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = latestPostContent;
+                        const cleanText = tempDiv.textContent || tempDiv.innerText || "";
+                        
+                        // Parse your live database dump straight into the app memory
+                        db.elections = JSON.parse(cleanText.trim());
                     }
                 }
             } catch(e) { 
-                console.error("Automated Telegram JSON database sync failure:", e); 
+                console.error("Automated Telegram live database sync failure:", e); 
             }
 
             try {
@@ -653,6 +659,7 @@ function saveStateToRepositoryCache() {
 
             renderElectionCardsGrid();
         }
+
 
 
         // ================= BUSINESS LOGIC: ELECTIONS RENDER HUB =================
