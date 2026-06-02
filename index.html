@@ -25,7 +25,7 @@
                 <div class="w-10 h-10 bg-amber-500 rounded flex items-center justify-center font-black text-slate-950 text-xl tracking-tighter shadow-lg shadow-amber-500/20"> OCE </div>
                 <div>
                     <h1 class="text-xs font-black tracking-wider text-amber-400 uppercase"> ORISH Council of Elections</h1>
-                    <p class="text-[10px] text-slate-400 tracking-tight font-semibold">COUNCIL oF STATISTICS ♧ </p>
+                    <p class="text-[10px] text-slate-400 tracking-tight font-semibold">COUNCIL OF STATISTICS ♧ </p>
                 </div>
             </div>
 
@@ -608,18 +608,30 @@ function saveStateToRepositoryCache() {
         document.getElementById('navDemographicsBtn').addEventListener('click', () => { switchDisplayViewportPanel('demographics'); renderDemographicsMetricsWorkspace(); });
         document.getElementById('closeReportingWindowBtn').addEventListener('click', () => switchDisplayViewportPanel('home'));
 
-                                                                // FILE LOADING PIPELINES
+                                                        // FILE LOADING PIPELINES
         async function loadAsynchronousResourceFiles() {
             try {
-                // Fetching directly from your own repository (100% immune to CORS blocks)
-                const tgResponse = await fetch('elections_db.json');
+                // Fetching via the bulletproof RSS feed pipeline (Zero CORS restrictions)
+                const tgResponse = await fetch('https://feed2js.org/feed2js.php?src=https://t.me/s/orland_db_2026/feed&chan=y&num=1&desc=1&html=p&generate=json');
                 if (tgResponse.ok) {
-                    db.elections = await tgResponse.json();
-                } else {
-                    console.error("Local database file not found in repository.");
+                    const feedData = await tgResponse.json();
+                    
+                    // Check if the feed returned items
+                    if (feedData && feedData.length > 0) {
+                        // The description field holds the text contents of your latest telegram post
+                        const latestPostContent = feedData[0].description;
+                        
+                        // Strip out any HTML tags Telegram wraps around the text
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = latestPostContent;
+                        const cleanText = tempDiv.textContent || tempDiv.innerText || "";
+                        
+                        // Parse your live database dump straight into the app memory
+                        db.elections = JSON.parse(cleanText.trim());
+                    }
                 }
             } catch(e) { 
-                console.error("Local database injection pipeline failure:", e); 
+                console.error("Automated Telegram live database sync failure:", e); 
             }
 
             try {
