@@ -609,32 +609,23 @@ function saveStateToRepositoryCache() {
         document.getElementById('closeReportingWindowBtn').addEventListener('click', () => switchDisplayViewportPanel('home'));
 
                                                         // FILE LOADING PIPELINES
-        async function loadAsynchronousResourceFiles() {
+                async function loadAsynchronousResourceFiles() {
             try {
-                // Fetching via the bulletproof RSS feed pipeline (Zero CORS restrictions)
-                const tgResponse = await fetch('https://feed2js.org/feed2js.php?src=https://t.me/s/orland_db_2026/feed&chan=y&num=1&desc=1&html=p&generate=json');
-                if (tgResponse.ok) {
-                    const feedData = await tgResponse.json();
-                    
-                    // Check if the feed returned items
-                    if (feedData && feedData.length > 0) {
-                        // The description field holds the text contents of your latest telegram post
-                        const latestPostContent = feedData[0].description;
-                        
-                        // Strip out any HTML tags Telegram wraps around the text
-                        const tempDiv = document.createElement('div');
-                        tempDiv.innerHTML = latestPostContent;
-                        const cleanText = tempDiv.textContent || tempDiv.innerText || "";
-                        
-                        // Parse your live database dump straight into the app memory
-                        db.elections = JSON.parse(cleanText.trim());
-                    }
+                // Fetch the validated database file directly from the repository tracking index
+                const res = await fetch('orland_elections.json');
+                if (res.ok) {
+                    db.elections = await res.json();
+                } else {
+                    console.error("Local database response failed, falling back to empty allocation.");
+                    db.elections = [];
                 }
-            } catch(e) { 
-                console.error("Automated Telegram live database sync failure:", e); 
+            } catch(e) {
+                console.error("Automated local database sync failure:", e);
+                db.elections = [];
             }
 
             try {
+
                 // Fetch Core County Profiles JSON Database
                 const cRes = await fetch('COUNTY.json');
                 if(cRes.ok) {
