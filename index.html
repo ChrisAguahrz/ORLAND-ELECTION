@@ -25,7 +25,7 @@
                 <div class="w-10 h-10 bg-amber-500 rounded flex items-center justify-center font-black text-slate-950 text-xl tracking-tighter shadow-lg shadow-amber-500/20"> OCE </div>
                 <div>
                     <h1 class="text-xs font-black tracking-wider text-amber-400 uppercase"> ORISH Council of Elections</h1>
-                    <p class="text-[10px] text-slate-400 tracking-tight font-semibold">COUNCIL of STATISTICS ♧ </p>
+                    <p class="text-[10px] text-slate-400 tracking-tight font-semibold">COUNCIL OF STATISTICS ♧ </p>
                 </div>
             </div>
 
@@ -608,33 +608,31 @@ function saveStateToRepositoryCache() {
         document.getElementById('navDemographicsBtn').addEventListener('click', () => { switchDisplayViewportPanel('demographics'); renderDemographicsMetricsWorkspace(); });
         document.getElementById('closeReportingWindowBtn').addEventListener('click', () => switchDisplayViewportPanel('home'));
 
-                                //        // FILE LOADING PIPELINES
+                                        // FILE LOADING PIPELINES
         async function loadAsynchronousResourceFiles() {
             try {
-                // Using an open API proxy to break through Telegram's 403 block
-                const proxyUrl = 'https://api.allorigins.win/get?url=';
-                const targetUrl = encodeURIComponent('https://t.me/s/orland_db_2026');
-                
-                const tgResponse = await fetch(`${proxyUrl}${targetUrl}`);
+                // Fetch directly from Telegram's official public embed widget (No proxy needed, no CORS block!)
+                const tgResponse = await fetch('https://t.me/s/orland_db_2026/widget');
                 if (tgResponse.ok) {
-                    const wrapper = await tgResponse.json();
-                    const htmlText = wrapper.contents; // This extracts the raw HTML text safely
+                    const htmlText = await tgResponse.text();
                     
-                    // Parse the HTML to extract the text from your telegram channel posts
+                    // Parse the clean widget HTML
                     const parser = new DOMParser();
                     const doc = parser.parseFromString(htmlText, 'text/html');
+                    
+                    // The widget stores message text inside '.tgme_widget_message_text'
                     const messages = doc.querySelectorAll('.tgme_widget_message_text');
                     
                     if (messages.length > 0) {
-                        // Grab your latest JSON database dump message
+                        // Extract the text of your newest JSON channel dump
                         const latestMessageText = messages[messages.length - 1].innerText.trim();
                         
-                        // Feed it directly to the system
+                        // Parse it and commit it to your local application database
                         db.elections = JSON.parse(latestMessageText);
                     }
                 }
             } catch(e) { 
-                console.error("Telegram automated stream bypass pipeline failure:", e); 
+                console.error("Telegram widget streaming pipeline failure:", e); 
             }
 
             try {
@@ -662,6 +660,7 @@ function saveStateToRepositoryCache() {
 
             renderElectionCardsGrid();
         }
+
 
         // ================= BUSINESS LOGIC: ELECTIONS RENDER HUB =================
         function renderElectionCardsGrid() {
