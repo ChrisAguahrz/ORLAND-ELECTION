@@ -1,11 +1,13 @@
 <!DOCTYPE html>
+<head>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+      <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Orish Council of Elections</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=Oswald:wght@500;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -22,10 +24,12 @@
     <aside class="w-full md:w-64 bg-slate-900 border-b md:border-b-0 md:border-r border-slate-800 flex flex-col justify-between p-4 z-30 shadow-2xl shrink-0">
         <div class="flex flex-col gap-6">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-amber-500 rounded flex items-center justify-center font-black text-slate-950 text-xl tracking-tighter shadow-lg shadow-amber-500/20"> OCE </div>
+                <div class="w-10 h-10 bg-slate-900 rounded flex items-center justify-center overflow-hidden shadow-lg shadow-amber-500/20">
+                    <img src="https://i.postimg.cc/dtGQWDnG/20260526-154329-0-KThread-1779799139638.png" class="w-full h-full object-cover" alt="Orland Flag">
+                </div>
                 <div>
                     <h1 class="text-xs font-black tracking-wider text-amber-400 uppercase"> ORISH Council of Elections</h1>
-                    <p class="text-[10px] text-slate-400 tracking-tight font-semibold">COUNCIL oF STATISTICS ♧ </p>
+                    <p class="text-[10px] text-slate-400 tracking-tight font-semibold">COUNCIL OF STATISTICS ♧ </p>
                 </div>
             </div>
 
@@ -41,6 +45,8 @@
                 <span>System Pipeline Status:</span>
                 <span id="saveStatus" class="text-emerald-400 font-bold">Online..</span>
             </div>
+            <div id="lastSyncTime" class="text-[8px] text-slate-500 font-mono mt-0.5">Last Update: Never</div>
+            <div id="systemClock" class="text-[10px] text-amber-500 font-mono font-bold mt-1">00:00:00</div>
             <div class="text-[9px] text-slate-500 italic mt-1">Commonwealth of Orland Sovereign Platform v9.4</div>
         </div>
     </aside>
@@ -121,8 +127,33 @@
 
                         <div id="mapReportingContainer" class="flex-1 w-full min-h-[350px] md:min-h-0 bg-white relative flex items-center justify-center">
                             <svg id="reportingMapCanvas" class="w-full h-full text-slate-900 select-none"></svg>
-                            
-<!-- Alignment alert removed -->
+                        </div>
+                    </div>
+
+                    <!-- Reporting Status Table -->
+                    <div class="bg-slate-900 rounded-xl border border-slate-800 p-4 mt-4 flex flex-col gap-3">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-xs font-black uppercase tracking-wider text-amber-400">Territorial Reporting Status</h3>
+                            <div class="flex gap-2">
+                                <button id="statusToggleStateBtn" class="bg-amber-600 text-white font-bold text-[10px] px-3 py-1 rounded uppercase transition">States</button>
+                                <button id="statusToggleCountyBtn" class="bg-slate-800 text-slate-400 font-bold text-[10px] px-3 py-1 rounded uppercase transition hover:bg-slate-700">Counties</button>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto max-h-80 bg-slate-950 rounded border border-slate-800">
+                            <table class="w-full text-left border-collapse text-[11px] font-mono">
+                                <thead class="bg-slate-900 text-slate-500 sticky top-0 uppercase text-[9px]">
+                                    <tr>
+                                        <th class="p-2 border-b border-slate-800">Territory</th>
+                                        <th class="p-2 border-b border-slate-800 text-right">Electorate</th>
+                                        <th class="p-2 border-b border-slate-800 text-right">Votes Counted</th>
+                                        <th class="p-2 border-b border-slate-800 text-right">Progress</th>
+                                        <th class="p-2 border-b border-slate-800 text-right">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reportingStatusTableBody" class="divide-y divide-slate-900">
+                                    <!-- Rows will be injected here -->
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -311,6 +342,13 @@
                                     </div>
                             </div>
                         </div>
+                        
+                        <div class="border-t border-slate-800 pt-4">
+                            <h4 class="text-[10px] uppercase font-black text-amber-500 mb-2">🎨 Party Color Management</h4>
+                            <div id="partyColorManagementContainer" class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                <!-- Colors will be injected here -->
+                            </div>
+                        </div>
 
                         <div class="border-t border-slate-800 pt-4 flex flex-col gap-3 bg-slate-950/40 p-3 rounded-lg border border-slate-800">
                             <h3 class="text-xs font-black uppercase tracking-wider text-amber-500">📥 Ballots & Real-Time Vote Management Deck</h3>
@@ -346,6 +384,77 @@
                                 </div>
 
                                 <button id="voteMgmtCommitChangesBtn" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs py-2 rounded tracking-wide uppercase shadow-lg transition">Append Certified Ballots Batch</button>
+                            </div>
+
+                            <div class="border-t border-slate-800 pt-4 flex flex-col gap-3">
+                                <h3 class="text-xs font-black uppercase tracking-wider text-amber-500">📋 Batch County Vote Entry</h3>
+                                <p class="text-[9px] text-slate-500 italic">Paste spreadsheet rows: county_id, spoilt, cand1, cand2, cand3 (Tabs/Spaces supported)</p>
+                                <textarea id="batchVotePasteArea" rows="4" class="w-full bg-slate-950 border border-slate-700 rounded p-2 text-[10px] text-slate-300 font-mono focus:outline-none focus:border-amber-500" placeholder="22004    99    2,872,498    465,998    140,147"></textarea>
+                                <div class="flex gap-2">
+                                    <button id="batchVoteCommitBtn" class="flex-1 bg-sky-700 hover:bg-sky-600 text-white font-bold text-xs py-2 rounded uppercase transition">Commit Batch Paste</button>
+                                    <label class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded text-xs font-bold cursor-pointer transition">
+                                        📁 Upload File
+                                        <input type="file" id="batchVoteFile" class="hidden" accept=".xlsx, .xls, .csv">
+                                    </label>
+                                </div>
+                                
+                                <div id="blockedCountyListContainer" class="hidden mt-2 border border-rose-900/40 bg-rose-950/10 rounded p-2">
+                                    <h4 class="text-[10px] font-black text-rose-400 uppercase mb-2">Blocked / Manual Override List</h4>
+                                    <div class="overflow-x-auto">
+                                        <table class="w-full text-[9px] text-left border-collapse">
+                                            <thead>
+                                                <tr class="text-slate-500 border-b border-rose-900/30">
+                                                    <th class="pb-1">County</th>
+                                                    <th class="pb-1">Current Votes</th>
+                                                    <th class="pb-1">Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="blockedCountyTableBody" class="text-slate-300"></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="border-t border-slate-800 pt-4 flex flex-col gap-3">
+                                <h3 class="text-xs font-black uppercase tracking-wider text-amber-500">👥 Territorial Population Management</h3>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <select id="popMgmtCountySelector" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 text-xs text-slate-200 focus:outline-none"></select>
+                                    <input type="number" id="popMgmtNewPopulation" placeholder="New Population" class="bg-slate-950 border border-slate-700 rounded p-1.5 text-xs text-slate-200">
+                                </div>
+                                <button id="popMgmtUpdateBtn" class="w-full bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs py-2 rounded uppercase transition">Update Single County</button>
+                                
+                                <div class="flex flex-col gap-2 mt-2">
+                                    <p class="text-[9px] text-slate-500 italic">Batch Population Change (Paste: county_id, new_population)</p>
+                                    <textarea id="batchPopPasteArea" rows="3" class="w-full bg-slate-950 border border-slate-700 rounded p-2 text-[10px] text-slate-300 font-mono focus:outline-none" placeholder="22004    2,900,000"></textarea>
+                                    <div class="flex gap-2">
+                                        <button id="batchPopCommitBtn" class="flex-1 bg-emerald-800 hover:bg-emerald-700 text-white font-bold text-[10px] py-1.5 rounded uppercase transition">Commit Batch Population Change</button>
+                                        <label class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded text-[10px] font-bold cursor-pointer transition">
+                                            📁 Upload File
+                                            <input type="file" id="batchPopFile" class="hidden" accept=".xlsx, .xls, .csv">
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="border-t border-slate-800 pt-4 flex flex-col gap-3">
+                                <h3 class="text-xs font-black uppercase tracking-wider text-rose-500">🗑️ Result Deletion Hub</h3>
+                                <div class="grid grid-cols-1 gap-2">
+                                    <div class="flex gap-2">
+                                        <select id="deleteMgmtType" class="bg-slate-950 border border-slate-700 rounded p-1.5 text-xs text-slate-200 focus:outline-none">
+                                            <option value="county">County</option>
+                                            <option value="state">Full State</option>
+                                        </select>
+                                        <select id="deleteMgmtTargetSelector" class="flex-1 bg-slate-950 border border-slate-700 rounded p-1.5 text-xs text-slate-200 focus:outline-none"></select>
+                                    </div>
+                                    <input type="text" id="deleteMgmtReasonInput" placeholder="Reason for deletion (Required)" class="bg-slate-950 border border-slate-700 rounded p-1.5 text-xs text-slate-200">
+                                    <button id="deleteMgmtBtn" class="w-full bg-rose-800 hover:bg-rose-700 text-white font-bold text-xs py-2 rounded uppercase transition">Wipe Selected Election Results</button>
+                                </div>
+                                <div class="mt-2 bg-slate-950 border border-slate-900 rounded p-2">
+                                    <h4 class="text-[9px] font-black uppercase text-slate-500 mb-1">Deletion Audit Log</h4>
+                                    <div id="deleteMgmtLogContainer" class="max-h-24 overflow-y-auto text-[8px] font-mono text-rose-400/70 flex flex-col gap-1">
+                                        <div class="italic text-slate-600">No deletions recorded in this session.</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -558,15 +667,18 @@ function saveStateToRepositoryCache() {
     formData.append('caption', `Election Matrix Update: ${new Date().toLocaleString()}`);
 
     // Use sendDocument instead of sendMessage to bypass character limits
-    fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendDocument`, {
+            fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendDocument`, {
         method: 'POST',
         body: formData
     })
     .then(res => {
         if (res.ok) {
             console.log("Global cloud matrix synced to Telegram via File Upload.");
-            document.getElementById('saveStatus').textContent = "Online (File Synced)";
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString();
+            document.getElementById('saveStatus').textContent = `Online`;
             document.getElementById('saveStatus').className = "text-emerald-400 font-bold";
+            document.getElementById('lastSyncTime').textContent = `Last Update: ${timeStr}`;
         } else {
             console.error("Telegram API Error");
             document.getElementById('saveStatus').textContent = "Sync Error";
@@ -604,39 +716,330 @@ function saveStateToRepositoryCache() {
 
         // TRIGGER NAVIGATION SHORT CIRCUITS BOUND TO THE SIDEBAR
         document.getElementById('navHomeBtn').addEventListener('click', () => switchDisplayViewportPanel('home'));
-        document.getElementById('navAdminBtn').addEventListener('click', () => { switchDisplayViewportPanel('admin'); syncAdminControlsComplex(); });
+        document.getElementById('navAdminBtn').addEventListener('click', () => { 
+            switchDisplayViewportPanel('admin'); 
+            // Optimization: Use setTimeout to allow the UI to switch panels before doing heavy DOM work
+            setTimeout(syncAdminControlsComplex, 50); 
+        });
+
+        // ---- FIX: Direct listeners for Batch Paste buttons ----
+        function processBatchVoteRows(rows, el) {
+            let processed = 0, blocked = [];
+            rows.forEach(row => {
+                if(!row) return;
+                
+                let finalCols = [];
+                if (Array.isArray(row)) {
+                    // Filter out empty cells and clean values
+                    finalCols = row.filter(c => c !== null && c !== undefined && c !== "").map(c => c.toString().replace(/,/g, '').trim());
+                } else {
+                    // Split by any combination of tabs and multiple spaces
+                    finalCols = row.trim().split(/[\t\s]{2,}|[\t]/).map(c => c.replace(/,/g, '').trim()).filter(c => c !== "");
+                    // Final fallback for single space if no multi-space/tab found
+                    if(finalCols.length < 2) {
+                        finalCols = row.trim().split(/\s+/).map(c => c.replace(/,/g, '').trim()).filter(c => c !== "");
+                    }
+                }
+
+                if(finalCols.length >= 2) {
+                    const cid = finalCols[0];
+                    if(!cid) return;
+
+                    // SMART MATCHING: Try ID (exact), then ID (padded), then Name
+                    let co = db.counties.find(c => c.id.toString() === cid || c.id.toString().padStart(5, '0') === cid.padStart(5, '0'));
+                    if(!co) co = db.counties.find(c => c.county.toLowerCase().trim() === cid.toLowerCase().trim());
+                    if(!co) return;
+                    
+                    const actualCid = co.id;
+                    if(el.frozenCounties && el.frozenCounties[actualCid]) { blocked.push(co); return; }
+                    
+                    const newSpoilt = parseInt(finalCols[1]) || 0;
+                    let newCandVotes = [];
+                    for(let i=0; i<el.candidates.length; i++) {
+                        newCandVotes.push(parseInt(finalCols[i+2]) || 0);
+                    }
+
+                    // Turnout Validation
+                    const totalNewVotes = newSpoilt + newCandVotes.reduce((a, b) => a + b, 0);
+                    const progress = (totalNewVotes / co.registered_voters) * 100;
+                    
+                    if (progress > 100) {
+                        if (!confirm(`WARNING: County ${co.county} (${co.id}) will EXCEED 100% turnout (${progress.toFixed(2)}%). Proceed anyway?`)) return;
+                    } else if (progress === 100) {
+                        alert(`County ${co.county} has reached exactly 100% turnout.`);
+                    }
+
+                    el.spoiltVotes[actualCid] = newSpoilt;
+                    for(let i=0; i<el.candidates.length; i++) {
+                        el.candidates[i].votes[actualCid] = newCandVotes[i];
+                    }
+                    processed++;
+                }
+            });
+            return { processed, blocked };
+        }
+
+        function processBatchPopRows(rows) {
+            let processed = 0;
+            rows.forEach(row => {
+                if(!row) return;
+
+                let finalCols = [];
+                if (Array.isArray(row)) {
+                    finalCols = row.filter(c => c !== null && c !== undefined && c !== "").map(c => c.toString().replace(/,/g, '').trim());
+                } else {
+                    finalCols = row.trim().split(/[\t\s]{2,}|[\t]/).map(c => c.replace(/,/g, '').trim()).filter(c => c !== "");
+                    if(finalCols.length < 2) {
+                        finalCols = row.trim().split(/\s+/).map(c => c.replace(/,/g, '').trim()).filter(c => c !== "");
+                    }
+                }
+
+                if(finalCols.length >= 2) {
+                    const cid = finalCols[0];
+                    const newPop = parseInt(finalCols[1]);
+                    if(!cid || isNaN(newPop)) return;
+
+                    let co = db.counties.find(c => c.id.toString() === cid || c.id.toString().padStart(5, '0') === cid.padStart(5, '0'));
+                    if(!co) co = db.counties.find(c => c.county.toLowerCase().trim() === cid.toLowerCase().trim());
+                    
+                    if(co) {
+                        const actualCid = co.id;
+                        co.registered_voters = newPop;
+                        db.elections.forEach(el => {
+                            delete el.spoiltVotes[actualCid];
+                            if(el.frozenCounties) delete el.frozenCounties[actualCid];
+                            el.candidates.forEach(cand => delete cand.votes[actualCid]);
+                        });
+                        processed++;
+                    }
+                }
+            });
+            return processed;
+        }
+
+        document.getElementById('batchVoteCommitBtn').addEventListener('click', function() {
+            const elId = document.getElementById('adminActiveElectionSelector').value;
+            const el = db.elections.find(e => e.id === elId);
+            if(!el) return alert("Select an active election first.");
+            const rawData = document.getElementById('batchVotePasteArea').value.trim();
+            if(!rawData) return;
+            const rows = rawData.split('\n');
+            const result = processBatchVoteRows(rows, el);
+            
+            if(result.blocked.length > 0) {
+                const container = document.getElementById('blockedCountyListContainer');
+                const tbody = document.getElementById('blockedCountyTableBody');
+                container.classList.remove('hidden');
+                tbody.innerHTML = '';
+                result.blocked.forEach(co => {
+                    let tr = document.createElement('tr');
+                    tr.className = "border-b border-rose-900/20";
+                    let votesByParty = el.candidates.map(c => `<div class="flex justify-between gap-2"><span class="text-[8px] uppercase font-bold text-slate-500">${c.party}:</span><span class="font-mono">${(c.votes[co.id] || 0).toLocaleString()}</span></div>`).join('');
+                    tr.innerHTML = `<td class="py-2 pr-2 border-r border-rose-900/10"><div class="font-bold text-slate-200">${co.county}</div><div class="text-[8px] text-slate-500 font-mono">ID: ${co.id}</div></td><td class="py-2 px-2 border-r border-rose-900/10">${votesByParty}</td><td class="py-2 pl-2 text-right"><button class="bg-sky-900/40 text-sky-400 px-2 py-1 rounded text-[8px] font-black uppercase hover:bg-sky-800/60 transition" onclick="document.getElementById('voteMgmtStateSelector').value='${co.state}'; document.getElementById('voteMgmtStateSelector').dispatchEvent(new Event('change')); setTimeout(() => { document.getElementById('voteMgmtCountySelector').value='${co.id}'; document.getElementById('voteMgmtCountySelector').dispatchEvent(new Event('change')); }, 150);">Manual Override</button></td>`;
+                    tbody.appendChild(tr);
+                });
+            }
+            if(result.processed > 0) {
+                saveStateToRepositoryCache();
+                document.getElementById('batchVotePasteArea').value = '';
+                alert(`Successfully processed ${result.processed} counties.${result.blocked.length ? ` ${result.blocked.length} counties are LOCKED and listed below for manual override.` : ''}`);
+            } else if(result.blocked.length > 0) {
+                alert(`No updates applied. ${result.blocked.length} counties are LOCKED and listed below for manual override.`);
+            } else {
+                alert("No valid rows found. Check format: county_id TAB spoilt TAB cand1 TAB cand2...");
+            }
+        });
+
+        document.getElementById('batchVoteFile').addEventListener('change', function(e) {
+            const elId = document.getElementById('adminActiveElectionSelector').value;
+            const el = db.elections.find(e => e.id === elId);
+            if(!el) { alert("Select an active election first."); this.value = ''; return; }
+            
+            const file = e.target.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const data = evt.target.result;
+                let rows = [];
+                if(file.name.endsWith('.csv')) {
+                    rows = data.split(/\r?\n/).map(r => r.split(','));
+                } else {
+                    const workbook = XLSX.read(data, {type: 'binary'});
+                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                    // header: 1 returns an array of arrays (perfect for our process function)
+                    rows = XLSX.utils.sheet_to_json(sheet, {header: 1, defval: ""});
+                }
+                const result = processBatchVoteRows(rows, el);
+                if(result.processed > 0) {
+                    saveStateToRepositoryCache();
+                    alert(`File processed: ${result.processed} counties updated.`);
+                } else {
+                    alert("No valid data found in file. Ensure the first column is County ID or Name.");
+                }
+                e.target.value = ''; // Reset input
+            };
+            if(file.name.endsWith('.csv')) reader.readAsText(file);
+            else reader.readAsBinaryString(file);
+        });
+
+        document.getElementById('batchPopCommitBtn').addEventListener('click', function() {
+            const rawData = document.getElementById('batchPopPasteArea').value.trim();
+            if(!rawData) return;
+            const rows = rawData.split('\n');
+            if(confirm("BATCH POPULATION UPDATE: This will reset all election results for the listed counties. Proceed?")) {
+                const processed = processBatchPopRows(rows);
+                if(processed > 0) {
+                    saveStateToRepositoryCache();
+                    document.getElementById('batchPopPasteArea').value = '';
+                    alert(`Batch population update complete. ${processed} counties updated and results wiped.`);
+                } else {
+                    alert('No valid rows found. Check format: county_id TAB population');
+                }
+            }
+        });
+
+        document.getElementById('batchPopFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if(!file) return;
+            if(confirm("BATCH POPULATION UPDATE: This will reset all election results for the listed counties. Proceed?")) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    const data = evt.target.result;
+                    let rows = [];
+                    if(file.name.endsWith('.csv')) {
+                        rows = data.split(/\r?\n/).map(r => r.split(','));
+                    } else {
+                        const workbook = XLSX.read(data, {type: 'binary'});
+                        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                        rows = XLSX.utils.sheet_to_json(sheet, {header: 1, defval: ""});
+                    }
+                    const processed = processBatchPopRows(rows);
+                    if(processed > 0) {
+                        saveStateToRepositoryCache();
+                        alert(`File processed: ${processed} counties population updated.`);
+                    } else {
+                        alert("No valid data found in file. Ensure the first column is County ID or Name.");
+                    }
+                    e.target.value = ''; // Reset input
+                };
+                if(file.name.endsWith('.csv')) reader.readAsText(file);
+                else reader.readAsBinaryString(file);
+            } else {
+                e.target.value = '';
+            }
+        });
+        // ---- END FIX 1 ----
         document.getElementById('navDemographicsBtn').addEventListener('click', () => { switchDisplayViewportPanel('demographics'); renderDemographicsMetricsWorkspace(); });
         document.getElementById('closeReportingWindowBtn').addEventListener('click', () => switchDisplayViewportPanel('home'));
 
-                                                        // FILE LOADING PIPELINES
-                async function loadAsynchronousResourceFiles() {
-            try {
-                // Fetch the validated database file directly from the repository tracking index
-                const res = await fetch('orland_elections.json');
-                if (res.ok) {
-                    db.elections = await res.json();
-                } else {
-                    console.error("Local database response failed, falling back to empty allocation.");
-                    db.elections = [];
+        // Global click listener for dynamic buttons (removed conflicting batch listeners)
+        document.addEventListener('click', (e) => {
+            // Target the button itself OR any child (like an icon) inside the button
+            const voteBtn = e.target.closest('#batchVoteCommitBtn');
+            const popBtn = e.target.closest('#batchPopCommitBtn');
+
+            // Logic moved to direct listeners for better reliability
+            // but keeping this structure for other dynamic buttons if any
+        });
+
+        document.getElementById('popMgmtUpdateBtn').addEventListener('click', () => {
+            const cid = document.getElementById('popMgmtCountySelector').value;
+            const newPop = parseInt(document.getElementById('popMgmtNewPopulation').value);
+            if(!cid || isNaN(newPop)) return alert("Select county and enter valid population.");
+            
+            if(confirm(`WARNING 1/2: This will change the population of the county and WIPE all election results for it. Continue?`)) {
+                if(confirm(`WARNING 2/2: FINAL CONFIRMATION. This action is irreversible. Proceed?`)) {
+                    const co = db.counties.find(c => c.id === cid);
+                    co.registered_voters = newPop;
+                    db.elections.forEach(el => {
+                        delete el.spoiltVotes[cid];
+                        if(el.frozenCounties) delete el.frozenCounties[cid];
+                        el.candidates.forEach(cand => delete cand.votes[cid]);
+                    });
+                    saveStateToRepositoryCache();
+                    alert("Population updated and results wiped.");
                 }
-            } catch(e) {
-                console.error("Automated local database sync failure:", e);
-                db.elections = [];
+            }
+        });
+
+        document.getElementById('deleteMgmtBtn').addEventListener('click', () => {
+            const elId = document.getElementById('adminActiveElectionSelector').value;
+            const el = db.elections.find(e => e.id === elId);
+            const type = document.getElementById('deleteMgmtType').value;
+            const targetId = document.getElementById('deleteMgmtTargetSelector').value;
+            const reason = document.getElementById('deleteMgmtReasonInput').value.trim();
+            if(!el || !targetId || !reason) return alert("Select election, target, and provide a reason.");
+            
+            const warningMsg = type === 'county' ? `delete results for county ${targetId}` : `PERMANENTLY WIPE ALL results for the ENTIRE STATE of ${targetId}`;
+            
+            if(confirm(`WARNING 1/2: You are about to ${warningMsg}. Proceed?`)) {
+                if(confirm(`WARNING 2/2: This action is irreversible and will be logged. Continue?`)) {
+                    let targetCounties = [];
+                    if(type === 'county') {
+                        targetCounties = [db.counties.find(c => c.id === targetId)];
+                    } else {
+                        targetCounties = db.counties.filter(c => c.state === targetId);
+                    }
+
+                    targetCounties.forEach(co => {
+                        if(!co) return;
+                        delete el.spoiltVotes[co.id];
+                        if(el.frozenCounties) delete el.frozenCounties[co.id];
+                        el.candidates.forEach(cand => delete cand.votes[co.id]);
+                    });
+                    
+                    const logEntry = document.createElement('div');
+                    logEntry.textContent = `[${new Date().toLocaleTimeString()}] Deleted ${type.toUpperCase()}: ${targetId} - Reason: ${reason}`;
+                    const logContainer = document.getElementById('deleteMgmtLogContainer');
+                    if(logContainer.querySelector('.italic')) logContainer.innerHTML = '';
+                    logContainer.prepend(logEntry);
+                    
+                    saveStateToRepositoryCache();
+                    compileElectionDashboardCalculations();
+                    alert(`${type.charAt(0).toUpperCase() + type.slice(1)} results deleted successfully.`);
+                }
+            }
+        });
+
+                                                        // FILE LOADING PIPELINES
+        async function loadAsynchronousResourceFiles() {
+            try {
+                // Fetching via the bulletproof RSS feed pipeline (Zero CORS restrictions)
+                const tgResponse = await fetch('https://feed2js.org/feed2js.php?src=https://t.me/s/orland_db_2026/feed&chan=y&num=1&desc=1&html=p&generate=json');
+                if (tgResponse.ok) {
+                    const feedData = await tgResponse.json();
+                    
+                    // Check if the feed returned items
+                    if (feedData && feedData.length > 0) {
+                        // The description field holds the text contents of your latest telegram post
+                        const latestPostContent = feedData[0].description;
+                        
+                        // Strip out any HTML tags Telegram wraps around the text
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = latestPostContent;
+                        const cleanText = tempDiv.textContent || tempDiv.innerText || "";
+                        
+                        // Parse your live database dump straight into the app memory
+                        db.elections = JSON.parse(cleanText.trim());
+                    }
+                }
+            } catch(e) { 
+                console.error("Automated Telegram live database sync failure:", e); 
             }
 
             try {
-
                 // Fetch Core County Profiles JSON Database
                 const cRes = await fetch('COUNTY.json');
                 if(cRes.ok) {
                     db.counties = await cRes.json();
                     let extractedStates = [...new Set(db.counties.map(c => c.state))].sort();
                     db.states = extractedStates.map(st => {
+                        let totalVoters = db.counties.filter(c => c.state === st).reduce((acc, curr) => acc + curr.registered_voters, 0);
+                        return { name: st, region: db.counties.find(c => c.state === st).region, registered_voters: totalVoters };
+                    });
                 }
             } catch(e) { console.error("Resource pipeline dynamic asset injection failure:", e); }
 
-            // Kick off the rendering engine only after data is completely loaded
-            if (typeof initializeCoreRepositoryEngine === 'function') initializeCoreRepositoryEngine();
             try {
                 const sGeo = await fetch('(A) ORLAND STATES .json');
                 if(sGeo.ok) geoStatesJson = await sGeo.json();
@@ -696,43 +1099,56 @@ function saveStateToRepositoryCache() {
         }
 
         // ================= CALCULATION AND ANALYSIS PIPELINE COMPILERS =================
+        let calculationDebounceTimer = null;
         function compileElectionDashboardCalculations() {
-    const el = db.elections.find(e => e.id === currentActiveElectionId);
-    if(!el) return;
+            if (calculationDebounceTimer) clearTimeout(calculationDebounceTimer);
+            calculationDebounceTimer = setTimeout(() => {
+                const el = db.elections.find(e => e.id === currentActiveElectionId);
+                if(!el) return;
 
-    // DYNAMICALLY MAP COLORS TO PARTIES DETECTED IN THE ELECTION
-    el.candidates.forEach(c => {
-        getOrCreateDynamicPartyColor(c.party);
-    });
+                el.candidates.forEach(c => getOrCreateDynamicPartyColor(c.party));
+                document.getElementById('reportingElectionTitle').textContent = el.name;
 
-    document.getElementById('reportingElectionTitle').textContent = el.name;
+                let totalBallotsPool = 0;
+                let totalSpoiltPool = Object.values(el.spoiltVotes).reduce((a, b) => a + b, 0);
+                let totalElectoratePool = db.counties.reduce((a, b) => a + b.registered_voters, 0);
 
-            // Aggregate metrics
-            let totalBallotsPool = 0;
-            let totalSpoiltPool = Object.values(el.spoiltVotes).reduce((a, b) => a + b, 0);
-            
-            // Total national registered voters pool
-            let totalElectoratePool = db.counties.reduce((a, b) => a + b.registered_voters, 0);
+                let parsedCandidates = el.candidates.map(c => {
+                    let candidateTotalVotes = Object.values(c.votes).reduce((a, b) => a + b, 0);
+                    totalBallotsPool += candidateTotalVotes;
+                    return { ...c, totalVotesAggregate: candidateTotalVotes };
+                });
 
-            // Compute candidate vote aggregates
-            let parsedCandidates = el.candidates.map(c => {
-                let candidateTotalVotes = Object.values(c.votes).reduce((a, b) => a + b, 0);
-                totalBallotsPool += candidateTotalVotes;
-                return { ...c, totalVotesAggregate: candidateTotalVotes };
-            });
+                parsedCandidates.sort((a, b) => b.totalVotesAggregate - a.totalVotesAggregate);
 
-            // Sort candidates descending based on cumulative total votes aggregate
-            parsedCandidates.sort((a, b) => b.totalVotesAggregate - a.totalVotesAggregate);
+                let overallTurnoutPct = totalElectoratePool > 0 ? ((totalBallotsPool + totalSpoiltPool) / totalElectoratePool) * 100 : 0;
+                document.getElementById('nationalReportingProgressText').textContent = `${overallTurnoutPct.toFixed(2)}%`;
+                document.getElementById('nationalReportingProgressBar').style.width = `${Math.min(100, overallTurnoutPct)}%`;
 
-            let overallTurnoutPct = totalElectoratePool > 0 ? ((totalBallotsPool + totalSpoiltPool) / totalElectoratePool) * 100 : 0;
-            document.getElementById('nationalReportingProgressText').textContent = `${overallTurnoutPct.toFixed(2)}%`;
-            document.getElementById('nationalReportingProgressBar').style.width = `${Math.min(100, overallTurnoutPct)}%`;
+                // General Completion Prompt
+                if (overallTurnoutPct >= 100 && !el.isApproved) {
+                    if (confirm("GENERAL VOTES COUNTING HAS REACHED 100%. Would you like to CLOSE and APPROVE this election pipeline?")) {
+                        el.isApproved = true;
+                        saveStateToRepositoryCache();
+                        alert("Election Pipeline APPROVED and Finalized.");
+                    }
+                }
 
-            // Render Candidate Row Cards
-            renderReportingCandidatesList(parsedCandidates, totalBallotsPool, el);
-            renderReportingPieCompositionChart(parsedCandidates);
-            renderCrossTerritorialMatrixTable(parsedCandidates, el);
-            renderReportingGeographicSvgMap(parsedCandidates, el);
+                // Use requestIdleCallback or setTimeout to break up heavy rendering
+                requestAnimationFrame(() => {
+                    renderReportingCandidatesList(parsedCandidates, totalBallotsPool, el);
+                    setTimeout(() => {
+                        renderReportingPieCompositionChart(parsedCandidates);
+                        setTimeout(() => {
+                            renderCrossTerritorialMatrixTable(parsedCandidates, el);
+                            setTimeout(() => {
+                                renderReportingGeographicSvgMap(parsedCandidates, el);
+                                renderReportingStatusTable(el);
+                            }, 50);
+                        }, 50);
+                    }, 50);
+                });
+            }, 100);
         }
 
         function renderReportingCandidatesList(candidates, totalValidVotes, election) {
@@ -755,7 +1171,12 @@ function saveStateToRepositoryCache() {
                                 return acc + v;
                             }, 0);
                             const oldPct = oldTotal > 0 ? (oldVotes / oldTotal) * 100 : 0;
-                            calculatedGrowth = (pct - oldPct).toFixed(2);
+                            // Calculate percentage change from previous percentage
+                            if (oldPct > 0) {
+                                calculatedGrowth = (((pct - oldPct) / oldPct) * 100).toFixed(2);
+                            } else {
+                                calculatedGrowth = pct.toFixed(2);
+                            }
                         }
                     }
                 } else {
@@ -792,7 +1213,7 @@ function saveStateToRepositoryCache() {
                 rowCard.className = "bg-slate-900 border border-slate-800 rounded-xl p-3 flex gap-3 hover:border-amber-500/30 transition cursor-pointer relative overflow-hidden";
                 rowCard.innerHTML = `
                     <div class="absolute left-0 top-0 bottom-0 w-1.5" style="background-color: ${partyColors[c.party] || '#475569'}"></div>
-                                        <div class="w-12 h-12 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-center overflow-hidden shrink-0">
+                                        <div class="w-20 h-20 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-center overflow-hidden shrink-0">
                         ${c.image ? `
                             <img src="${c.image}" class="w-full h-full object-cover" alt="${c.name}">
                         ` : `
@@ -934,6 +1355,68 @@ function saveStateToRepositoryCache() {
             compileElectionDashboardCalculations();
         });
                 // ================= D3 GEOMETRIC VECTOR CANVAS MAP ENGINE RENDER COMPLEX =================
+        let selectedStatusTab = 'state';
+
+        function renderReportingStatusTable(election) {
+            const body = document.getElementById('reportingStatusTableBody');
+            body.innerHTML = '';
+            
+            let data = [];
+            if (selectedStatusTab === 'state') {
+                data = db.states.map(st => {
+                    const counties = db.counties.filter(c => c.state === st.name);
+                    const electorate = st.registered_voters;
+                    let counted = 0;
+                    election.candidates.forEach(cand => {
+                        counties.forEach(co => counted += (cand.votes[co.id] || 0));
+                    });
+                    counties.forEach(co => counted += (election.spoiltVotes[co.id] || 0));
+                    const pct = electorate > 0 ? (counted / electorate) * 100 : 0;
+                    return { name: st.name, electorate, counted, pct };
+                });
+            } else {
+                data = db.counties.map(co => {
+                    const electorate = co.registered_voters;
+                    let counted = 0;
+                    election.candidates.forEach(cand => counted += (cand.votes[co.id] || 0));
+                    counted += (election.spoiltVotes[co.id] || 0);
+                    const pct = electorate > 0 ? (counted / electorate) * 100 : 0;
+                    return { name: co.county, electorate, counted, pct };
+                });
+            }
+
+            // Sort by percentage descending
+            data.sort((a, b) => b.pct - a.pct);
+
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-900/60 transition";
+                const status = row.pct >= 100 ? '<span class="text-rose-500 font-black">CLOSED</span>' : '<span class="text-emerald-400">OPEN</span>';
+                tr.innerHTML = `
+                    <td class="p-2 font-bold text-slate-300 uppercase">${row.name}</td>
+                    <td class="p-2 text-right text-slate-400">${row.electorate.toLocaleString()}</td>
+                    <td class="p-2 text-right text-slate-200">${row.counted.toLocaleString()}</td>
+                    <td class="p-2 text-right font-black ${row.pct >= 100 ? 'text-rose-500' : 'text-amber-500'}">${row.pct.toFixed(2)}%</td>
+                    <td class="p-2 text-right font-black">${status}</td>
+                `;
+                body.appendChild(tr);
+            });
+        }
+
+        document.getElementById('statusToggleStateBtn').addEventListener('click', function() {
+            selectedStatusTab = 'state';
+            this.className = "bg-amber-600 text-white font-bold text-[10px] px-3 py-1 rounded uppercase transition";
+            document.getElementById('statusToggleCountyBtn').className = "bg-slate-800 text-slate-400 font-bold text-[10px] px-3 py-1 rounded uppercase transition hover:bg-slate-700";
+            renderReportingStatusTable(db.elections.find(e => e.id === currentActiveElectionId));
+        });
+
+        document.getElementById('statusToggleCountyBtn').addEventListener('click', function() {
+            selectedStatusTab = 'county';
+            this.className = "bg-amber-600 text-white font-bold text-[10px] px-3 py-1 rounded uppercase transition";
+            document.getElementById('statusToggleStateBtn').className = "bg-slate-800 text-slate-400 font-bold text-[10px] px-3 py-1 rounded uppercase transition hover:bg-slate-700";
+            renderReportingStatusTable(db.elections.find(e => e.id === currentActiveElectionId));
+        });
+
         function renderReportingGeographicSvgMap(candidates, election) {
             const svgEl = d3.select("#reportingMapCanvas");
             svgEl.selectAll("*").remove();
@@ -957,10 +1440,15 @@ function saveStateToRepositoryCache() {
             const segments = canvasGroup.selectAll(".map-slice")
                 .data(geoTargetData.features)
                 .join("path")
-                .attr("class", "map-slice transition-all duration-200 cursor-pointer")
+                .attr("class", "map-slice transition-all duration-200 cursor-pointer hover:opacity-80")
                 .attr("d", pathGenerator)
                 .attr("stroke", "#0f172a") // Sharp dark borders to easily trace shapes over the white background
                 .attr("stroke-width", "0.4")
+                .on("click", (e, d) => {
+                    let geoState = d.properties.STATE || d.properties.state || d.properties.name || "";
+                    let geoCounty = d.properties.County || d.properties.county || d.properties.name || "";
+                    drillDownTerritoryProfileView(selectedReportingTab === 'state' ? geoState : geoCounty, selectedReportingTab);
+                })
                 .attr("fill", function(d) {
                     if (!d.properties) return "#f1f5f9";
 
@@ -1106,113 +1594,54 @@ function saveStateToRepositoryCache() {
             // Ensure we filter out unreadable values here too
             const validGeoVectors = unmatchedGeoVectors.filter(v => v && v.toString().trim() !== "" && !v.toString().includes("..."));
 
-// =========================================================================
-// ================= ALIGNMENT INTERACTIVE WIZARD COMPLEX =================
-// =========================================================================
-function openAlignmentSynchronizationWizard(unmatchedGeoVectors, currentTab) {
-    // Open modal wrapper container
-    document.getElementById('alignmentWizardModal').classList.remove('hidden');
+            if(validGeoVectors.length === 0) {
+                rightVectorContainer.innerHTML = `<div class="p-3 text-xs text-slate-400 italic text-center">No missing map shapes found.</div>`;
+            } else {
+                validGeoVectors.forEach(vectorName => {
+                    // Skip if already manually bound
+                    if(manualMapBindings[currentTab === 'state' ? 'states' : 'counties'][vectorName.toLowerCase().trim()]) return;
 
-    // Select UI lists based on exact HTML element IDs
-    const leftPoolContainer = document.getElementById('wizardUnmatchedRecordsList');
-    const rightVectorContainer = document.getElementById('wizardUnmatchedVectorsList');
-    
-    // Wipe previous HTML outputs to rebuild fresh arrays cleanly
-    leftPoolContainer.innerHTML = '';
-    rightVectorContainer.innerHTML = '';
+                    const el = document.createElement('div');
+                    el.className = "p-2.5 my-1 text-sm text-rose-300 bg-slate-800/60 hover:bg-slate-700/80 rounded cursor-pointer border border-transparent transition-all font-medium block";
+                    el.style.textAlign = "left";
+                    el.textContent = vectorName;
+                    
+                    el.onclick = () => {
+                        Array.from(rightVectorContainer.children).forEach(c => c.classList.remove('border-emerald-500', 'bg-slate-700'));
+                        el.classList.add('border-emerald-500', 'bg-slate-700');
+                        selectedGeoVector = vectorName;
+                        updateLinkageText();
+                    };
+                    rightVectorContainer.appendChild(el);
+                });
+            }
 
-    let selectedDbRecord = null;
-    let selectedGeoVector = null;
+            // Text output linkage string preview handler
+            const linkDisplay = document.getElementById('SelectedPathLinkageLabel') || document.querySelector('.selected-linkage-text');
+            function updateLinkageText() {
+                if(linkDisplay) {
+                    linkDisplay.textContent = `${selectedDbRecord || '???'} ──► ${selectedGeoVector || '???'}`;
+                }
+            }
 
-    // 1. Gather unmatched elements from database arrays and filter out corrupt/empty strings
-    let unmatchedDbEntities = [];
-    if(currentTab === 'state') {
-        unmatchedDbEntities = db.states.filter(s => {
-            if (!s.name || s.name.trim() === "" || s.name.includes("...")) return false; 
-            
-            let isMatched = geoStatesJson.features.some(f => (f.properties.STATE || f.properties.state || f.properties.name || "").toLowerCase().trim() === s.name.toLowerCase().trim());
-            let hasManualLink = db.unmatchedManualLinks[s.name.toLowerCase().trim()];
-            return !isMatched && !hasManualLink;
-        }).map(s => s.name.trim());
-    } else {
-        unmatchedDbEntities = db.counties.filter(c => {
-            if (!c.county || c.county.trim() === "" || c.county.includes("...")) return false; 
-            
-            let isMatched = geoCountiesJson.features.some(f => (f.properties.County || f.properties.county || f.properties.name || "").toLowerCase().trim() === c.county.toLowerCase().trim());
-            let hasManualLink = db.unmatchedManualLinks[c.id];
-            return !isMatched && !hasManualLink;
-        }).map(c => c.county.trim());
-    }
+            // 4. Bind Button Action Execution
+            const bindBtn = document.getElementById('bindPathConfigurationBtn') || document.querySelector('.bind-path-btn');
+            bindBtn.onclick = () => {
+                if(!selectedDbRecord || !selectedGeoVector) {
+                    alert("Please select one profile name from the pool and one vector layer shape to bridge.");
+                    return;
+                }
 
-    // 2. Populate Left Box: Clean text list of Unmatched Database Names
-    if(unmatchedDbEntities.length === 0) {
-        leftPoolContainer.innerHTML = `<div class="p-3 text-xs text-slate-500 italic text-center">All data nodes aligned.</div>`;
-    } else {
-        unmatchedDbEntities.forEach(entityName => {
-            const el = document.createElement('button');
-            el.className = "w-full text-left p-1.5 my-0.5 text-[11px] text-amber-500 bg-slate-900/50 hover:bg-slate-800 rounded border border-slate-800/40 transition-all font-mono truncate block";
-            el.textContent = entityName;
-            
-            el.onclick = () => {
-                Array.from(leftPoolContainer.children).forEach(c => c.classList.remove('border-amber-500', 'bg-slate-800'));
-                el.classList.add('border-amber-500', 'bg-slate-800');
-                selectedDbRecord = entityName;
-                updateLinkageText();
+                // Save to local storage ledger immediately 
+                saveManualMapBinding(currentTab === 'state' ? 'states' : 'counties', selectedGeoVector, selectedDbRecord);
+                
+                // Refresh vector canvas matrix shapes instantly
+                renderReportingGeographicSvgMap(currentElectionCandidates, currentElectionObject);
+                
+                // Refresh wizard interface instantly to drop matched pairs
+                openAlignmentSynchronizationWizard(validGeoVectors.filter(v => v !== selectedGeoVector), currentTab);
             };
-            leftPoolContainer.appendChild(el);
-        });
-    }
-
-    // 3. Populate Right Box: Unmatched GeoJSON Vector File Layer Shapes
-    const validGeoVectors = unmatchedGeoVectors.filter(v => v && v.toString().trim() !== "" && !v.toString().includes("..."));
-
-    if(validGeoVectors.length === 0) {
-        rightVectorContainer.innerHTML = `<div class="p-3 text-xs text-slate-500 italic text-center">No free vector tracks.</div>`;
-    } else {
-        validGeoVectors.forEach(vectorName => {
-            const el = document.createElement('button');
-            el.className = "w-full text-left p-1.5 my-0.5 text-[11px] text-slate-400 bg-slate-900/50 hover:bg-slate-800 rounded border border-slate-800/40 transition-all font-mono truncate block";
-            el.textContent = vectorName;
-            
-            el.onclick = () => {
-                Array.from(rightVectorContainer.children).forEach(c => c.classList.remove('border-emerald-500', 'bg-slate-800'));
-                el.classList.add('border-emerald-500', 'bg-slate-800');
-                selectedGeoVector = vectorName;
-                updateLinkageText();
-            };
-            rightVectorContainer.appendChild(el);
-        });
-    }
-
-    // Text output linkage string preview handler
-    const linkDisplay = document.getElementById('wizardSelectedLinkageText');
-    function updateLinkageText() {
-        if(linkDisplay) {
-            linkDisplay.textContent = `${selectedDbRecord || '???'} ➔ ${selectedGeoVector || '???'}`;
         }
-    }
-
-    // 4. Bind Button Action Execution Pipeline
-    const bindBtn = document.getElementById('commitWizardLinkageBtn');
-    bindBtn.onclick = () => {
-        if(!selectedDbRecord || !selectedGeoVector) {
-            alert("Please map a valid structural linkage pairs frame first.");
-            return;
-        }
-
-        // Append the tracking link directly into the data configuration map
-        db.unmatchedManualLinks[selectedGeoVector.toLowerCase().trim()] = selectedDbRecord;
-        
-        // Trigger local cache dump pipeline 
-        saveStateToRepositoryCache();
-        
-        // Re-compile layout parameters instantly
-        compileElectionDashboardCalculations();
-        
-        // Refresh wizard interface instantly to clear out matched pairs
-        openAlignmentSynchronizationWizard(validGeoVectors.filter(v => v !== selectedGeoVector), currentTab);
-    };
-}
 
 
         function updateWizardLinkageText(rec, vec) {
@@ -1223,11 +1652,11 @@ function openAlignmentSynchronizationWizard(unmatchedGeoVectors, currentTab) {
 
         // ================= CANDIDATE PROFILE MATRIX DISP TARGET DRILL DOWN =================
         function drillDownCandidateProfileView(candidateId) {
-    activeProfileCandidateId = candidateId; // Lock in the currently clicked candidate ID
-    switchDisplayViewportPanel('candidate');
-    const el = db.elections.find(e => e.id === currentActiveElectionId);
-    const cand = el.candidates.find(c => c.id === candidateId);
-    if(!cand) return;
+            activeProfileCandidateId = candidateId; 
+            switchDisplayViewportPanel('candidate');
+            const el = db.elections.find(e => e.id === currentActiveElectionId);
+            const cand = el.candidates.find(c => c.id === candidateId);
+            if(!cand) return;
 
             document.getElementById('candProfileName').textContent = cand.name;
             document.getElementById('candProfilePartyBadge').textContent = cand.party;
@@ -1239,6 +1668,18 @@ function openAlignmentSynchronizationWizard(unmatchedGeoVectors, currentTab) {
             renderCandidateConcentrationMatrixRows(cand, el);
             renderCandidateSpectrumIntensityMap(cand, el);
         }
+
+        // Add event listener to Candidate Profile Map to allow drilling down
+        document.getElementById('candProfileMapCanvas').addEventListener('click', (e) => {
+            const target = e.target;
+            if (target.tagName === 'path') {
+                const d = d3.select(target).datum();
+                if (d) {
+                    const name = d.properties.name || d.properties.county || d.properties.STATE || "";
+                    drillDownTerritoryProfileView(name, selectedCandProfileTab);
+                }
+            }
+        });
 
         function renderCandidateConcentrationMatrixRows(candidate, election) {
             const body = document.getElementById('candProfileTableBody');
@@ -1282,6 +1723,7 @@ function openAlignmentSynchronizationWizard(unmatchedGeoVectors, currentTab) {
             const svgEl = d3.select("#candProfileMapCanvas"); svgEl.selectAll("*").remove();
             const w = 600, h = 450; svgEl.attr("viewBox", `0 0 ${w} ${h}`).style("background", "#ffffff");
             
+            // Force refresh of the map data based on the current tab
             const geoData = selectedCandProfileTab === 'state' ? geoStatesJson : geoCountiesJson;
             if(!geoData) return;
 
@@ -1292,17 +1734,21 @@ function openAlignmentSynchronizationWizard(unmatchedGeoVectors, currentTab) {
                 .data(geoData.features)
                 .join("path")
                 .attr("d", pathGen)
-                .attr("stroke", "#ffffff").attr("stroke-width", "0.5")
+                .attr("stroke", "#ffffff").attr("stroke-width", "0.5").style("cursor", "pointer")
                 .attr("fill", function(d) {
-                    let identityToken = d.properties.name || d.properties.county || "";
+                    // FIX: Check all possible property names for the county/state
+                    let identityToken = (d.properties.County || d.properties.county || d.properties.STATE || d.properties.state || d.properties.name || "").toString().trim();
                     let share = 0;
                     
                     if(selectedCandProfileTab === 'state') {
-                        let stVotes = db.counties.filter(c => c.state === identityToken).reduce((acc, curr) => acc + (candidate.votes[curr.id] || 0), 0);
-                        let stTotal = election.candidates.reduce((acc, curr) => acc + db.counties.filter(c => c.state === identityToken).reduce((a, b) => a + (curr.votes[b.id] || 0), 0), 0);
-                        share = stTotal > 0 ? (stVotes / stTotal) * 100 : 0;
+                        let match = db.states.find(s => s.name.toLowerCase().trim() === identityToken.toLowerCase());
+                        if(match) {
+                            let stVotes = db.counties.filter(c => c.state === match.name).reduce((acc, curr) => acc + (candidate.votes[curr.id] || 0), 0);
+                            let stTotal = election.candidates.reduce((acc, curr) => acc + db.counties.filter(c => c.state === match.name).reduce((a, b) => a + (curr.votes[b.id] || 0), 0), 0);
+                            share = stTotal > 0 ? (stVotes / stTotal) * 100 : 0;
+                        }
                     } else {
-                        let match = db.counties.find(c => c.county.toLowerCase() === identityToken.toLowerCase());
+                        let match = db.counties.find(c => c.county.toLowerCase().trim() === identityToken.toLowerCase());
                         if(match) {
                             let cv = candidate.votes[match.id] || 0;
                             let cTotal = election.candidates.reduce((acc, curr) => acc + (curr.votes[match.id] || 0), 0);
@@ -1317,19 +1763,43 @@ function openAlignmentSynchronizationWizard(unmatchedGeoVectors, currentTab) {
         }
 
         document.getElementById('candProfileToggleStateBtn').addEventListener('click', function() {
-    selectedCandProfileTab = 'state'; this.className = "flex-1 bg-amber-600 text-white rounded py-0.5 transition";
-    document.getElementById('candProfileToggleCountyBtn').className = "flex-1 text-slate-400 py-0.5 rounded transition";
-    const el = db.elections.find(e => e.id === currentActiveElectionId);
-    drillDownCandidateProfileView(activeProfileCandidateId || el.candidates[0].id);
-});
+            selectedCandProfileTab = 'state'; 
+            this.className = "flex-1 bg-amber-600 text-white rounded py-0.5 transition";
+            document.getElementById('candProfileToggleCountyBtn').className = "flex-1 text-slate-400 py-0.5 rounded transition";
+            drillDownCandidateProfileView(activeProfileCandidateId);
+        });
 
-document.getElementById('candProfileToggleCountyBtn').addEventListener('click', function() {
-    selectedCandProfileTab = 'county'; this.className = "flex-1 bg-amber-600 text-white rounded py-0.5 transition";
-    document.getElementById('candProfileToggleStateBtn').className = "flex-1 text-slate-400 py-0.5 rounded transition";
-    const el = db.elections.find(e => e.id === currentActiveElectionId);
-    drillDownCandidateProfileView(activeProfileCandidateId || el.candidates[0].id);
-});
+        document.getElementById('candProfileToggleCountyBtn').addEventListener('click', function() {
+            selectedCandProfileTab = 'county'; 
+            this.className = "flex-1 bg-amber-600 text-white rounded py-0.5 transition";
+            document.getElementById('candProfileToggleStateBtn').className = "flex-1 text-slate-400 py-0.5 rounded transition";
+            drillDownCandidateProfileView(activeProfileCandidateId);
+        });
 
+
+
+
+        // ---- FIX: Wire up the Candidate Profile MAP toggle buttons ----
+        document.getElementById('candMapToggleState').addEventListener('click', function() {
+            selectedCandProfileTab = 'state';
+            this.className = "bg-amber-600 text-white px-2 py-0.5 rounded";
+            document.getElementById('candMapToggleCounty').className = "bg-slate-800 text-slate-400 px-2 py-0.5 rounded hover:bg-slate-700";
+            // Also sync the table toggle buttons to match
+            document.getElementById('candProfileToggleStateBtn').className = "flex-1 bg-amber-600 text-white rounded py-0.5 transition";
+            document.getElementById('candProfileToggleCountyBtn').className = "flex-1 text-slate-400 py-0.5 rounded transition";
+            drillDownCandidateProfileView(activeProfileCandidateId);
+        });
+
+        document.getElementById('candMapToggleCounty').addEventListener('click', function() {
+            selectedCandProfileTab = 'county';
+            this.className = "bg-amber-600 text-white px-2 py-0.5 rounded";
+            document.getElementById('candMapToggleState').className = "bg-slate-800 text-slate-400 px-2 py-0.5 rounded hover:bg-slate-700";
+            // Also sync the table toggle buttons to match
+            document.getElementById('candProfileToggleCountyBtn').className = "flex-1 bg-amber-600 text-white rounded py-0.5 transition";
+            document.getElementById('candProfileToggleStateBtn').className = "flex-1 text-slate-400 py-0.5 rounded transition";
+            drillDownCandidateProfileView(activeProfileCandidateId);
+        });
+        // ---- END FIX 3 ----
 
         document.getElementById('closeCandidateProfileBtn').addEventListener('click', () => switchDisplayViewportPanel('reporting'));
 
@@ -1338,16 +1808,81 @@ document.getElementById('candProfileToggleCountyBtn').addEventListener('click', 
             switchDisplayViewportPanel('territory');
             const election = db.elections.find(e => e.id === currentActiveElectionId);
 
-            if(targetType === 'state') {
-                let match = db.states.find(s => s.name === targetId);
-                document.getElementById('territoryProfileTitle').textContent = `${match.name} State Operational Profile`;
-                document.getElementById('territoryProfileRegion').textContent = `Macro-Region Context: ${match.region}`;
-                document.getElementById('territoryProfileRegistered').textContent = match.registered_voters.toLocaleString();
+            if(targetType === 'state' || targetType === 'county') {
+                let match = null;
+                if(targetType === 'state') {
+                    match = db.states.find(s => s.name === targetId);
+                } else {
+                    // If a county was clicked, find its state and zoom into that state's counties
+                    const coMatch = db.counties.find(c => c.id === targetId || c.county === targetId);
+                    if(coMatch) match = db.states.find(s => s.name === coMatch.state);
+                }
 
-                // Compute inner counties configuration tables parameters matrix
-                let innerCounties = db.counties.filter(c => c.state === match.name);
-                renderTerritorialDrillDownMatrixGrid(innerCounties, election);
+                if(match) {
+                    document.getElementById('territoryProfileTitle').textContent = `${match.name} State Operational Profile`;
+                    document.getElementById('territoryProfileRegion').textContent = `Macro-Region Context: ${match.region}`;
+                    document.getElementById('territoryProfileRegistered').textContent = match.registered_voters.toLocaleString();
+
+                    let innerCounties = db.counties.filter(c => c.state === match.name);
+                    renderTerritorialDrillDownMatrixGrid(innerCounties, election);
+                    
+                    // ZOOM MAP TO STATE COUNTIES
+                    renderStateCountiesZoomMap(match.name, election);
+                }
             }
+        }
+
+        function renderStateCountiesZoomMap(stateName, election) {
+            const svgEl = d3.select("#territoryMapCanvas");
+            if (!svgEl.node()) return; 
+            svgEl.selectAll("*").remove();
+            const w = 600, h = 400;
+            svgEl.attr("viewBox", `0 0 ${w} ${h}`).style("background", "#ffffff");
+
+            if (!geoCountiesJson) return;
+
+            // FIX: Build a set of county names that belong to this state from the DB,
+            // then filter geojson features by matching county name — NOT by STATE label
+            // (STATE labels in geojson may be incorrectly named)
+            const stateCountyNames = new Set(
+                db.counties
+                    .filter(c => c.state === stateName)
+                    .map(c => c.county.toLowerCase().trim())
+            );
+
+            const stateCounties = {
+                type: "FeatureCollection",
+                features: geoCountiesJson.features.filter(f => {
+                    const fCounty = (f.properties.County || f.properties.county || f.properties.name || "").toLowerCase().trim();
+                    return stateCountyNames.has(fCounty);
+                })
+            };
+
+            if (stateCounties.features.length === 0) return;
+
+            const projection = d3.geoIdentity().reflectY(true).fitSize([w - 40, h - 40], stateCounties);
+            const pathGen = d3.geoPath().projection(projection);
+
+            const g = svgEl.append("g");
+            g.selectAll(".state-county-slice")
+                .data(stateCounties.features)
+                .join("path")
+                .attr("d", pathGen)
+                .attr("stroke", "#0f172a").attr("stroke-width", "0.5")
+                .attr("fill", function(d) {
+                    const coName = d.properties.County || d.properties.county || d.properties.name || "";
+                    const coMatch = db.counties.find(c => c.county.toLowerCase().trim() === coName.toLowerCase().trim());
+                    if (!coMatch) return "#f1f5f9";
+
+                    let topCand = null, maxV = -1;
+                    election.candidates.forEach(c => {
+                        let cv = c.votes[coMatch.id] || 0;
+                        if(cv > maxV) { maxV = cv; topCand = c; }
+                    });
+                    return (topCand && maxV > 0) ? partyColors[topCand.party] : "#cbd5e1";
+                });
+            
+            // Note: Labels are explicitly disabled for this map as requested
         }
 
         function renderTerritorialDrillDownMatrixGrid(countiesList, election) {
@@ -1374,17 +1909,112 @@ document.getElementById('candProfileToggleCountyBtn').addEventListener('click', 
         document.getElementById('closeTerritoryProfileBtn').addEventListener('click', () => switchDisplayViewportPanel('reporting'));
 
         // ================= MANAGEMENT REAL-TIME DATA POPULATION AND VOTE SYSTEM WRAPPER =================
+        let _adminSyncCountyCount = -1;
+        let _adminSyncElectionCount = -1;
         function syncAdminControlsComplex() {
-            const eSel = document.getElementById('adminActiveElectionSelector');
-            eSel.innerHTML = '<option value="">-- Choose Active Event Pipeline --</option>';
-            db.elections.forEach(el => {
-                eSel.innerHTML += `<option value="${el.id}">${el.name} [${el.id}]</option>`;
-            });
+            // FIX: Only rebuild heavy county selectors when data has actually changed
+            const electionChanged = db.elections.length !== _adminSyncElectionCount;
+            const countyChanged = db.counties.length !== _adminSyncCountyCount;
 
+            // Always rebuild elections dropdown (fast, few items)
+            if(electionChanged) {
+                const eSel = document.getElementById('adminActiveElectionSelector');
+                const fragE = document.createDocumentFragment();
+                const optE = document.createElement('option'); optE.value = ""; optE.textContent = "-- Choose Active Event Pipeline --";
+                fragE.appendChild(optE);
+                db.elections.forEach(el => {
+                    const o = document.createElement('option'); o.value = el.id; o.textContent = `${el.name} [${el.id}]`;
+                    fragE.appendChild(o);
+                });
+                eSel.innerHTML = ''; eSel.appendChild(fragE);
+                _adminSyncElectionCount = db.elections.length;
+            }
+
+            // Always rebuild state selector (fast, few items)
             const stSel = document.getElementById('voteMgmtStateSelector');
-            stSel.innerHTML = '<option value="">-- Select State --</option>';
-            db.states.forEach(s => { stSel.innerHTML += `<option value="${s.name}">${s.name}</option>`; });
+            if(stSel.options.length <= 1) {
+                const fragS = document.createDocumentFragment();
+                const optS = document.createElement('option'); optS.value = ""; optS.textContent = "-- Select State --";
+                fragS.appendChild(optS);
+                db.states.forEach(s => {
+                    const o = document.createElement('option'); o.value = s.name; o.textContent = s.name;
+                    fragS.appendChild(o);
+                });
+                stSel.innerHTML = ''; stSel.appendChild(fragS);
+            }
+
+            // Only rebuild the heavy 424-county selectors when county data changes
+            if(countyChanged) {
+                const popSelector = document.getElementById('popMgmtCountySelector');
+                if(popSelector) {
+                    const fragC = document.createDocumentFragment();
+                    const optC = document.createElement('option'); optC.value = ""; optC.textContent = "-- Select County --";
+                    fragC.appendChild(optC);
+                    db.counties.forEach(c => {
+                        const o = document.createElement('option'); o.value = c.id; o.textContent = `${c.county} (${c.id})`;
+                        fragC.appendChild(o);
+                    });
+                    popSelector.innerHTML = ''; popSelector.appendChild(fragC);
+                    _adminSyncCountyCount = db.counties.length;
+                }
+            }
+            
+            // Sync deletion selector based on type
+            syncDeletionTargetSelector();
+            // Sync Party Color Management
+            renderPartyColorManagement();
         }
+
+        function syncDeletionTargetSelector() {
+            const type = document.getElementById('deleteMgmtType').value;
+            const sel = document.getElementById('deleteMgmtTargetSelector');
+            sel.innerHTML = '';
+            const frag = document.createDocumentFragment();
+            const opt = document.createElement('option'); opt.value = ""; opt.textContent = `-- Select ${type.charAt(0).toUpperCase() + type.slice(1)} --`;
+            frag.appendChild(opt);
+
+            if(type === 'county') {
+                db.counties.forEach(c => {
+                    const o = document.createElement('option'); o.value = c.id; o.textContent = `${c.county} (${c.id})`;
+                    frag.appendChild(o);
+                });
+            } else {
+                db.states.forEach(s => {
+                    const o = document.createElement('option'); o.value = s.name; o.textContent = s.name;
+                    frag.appendChild(o);
+                });
+            }
+            sel.appendChild(frag);
+        }
+
+        document.getElementById('deleteMgmtType').addEventListener('change', syncDeletionTargetSelector);
+
+        function renderPartyColorManagement() {
+            const container = document.getElementById('partyColorManagementContainer');
+            if(!container) return;
+            container.innerHTML = '';
+            
+            Object.keys(partyColors).forEach(party => {
+                const div = document.createElement('div');
+                div.className = "bg-slate-950 border border-slate-800 p-2 rounded flex flex-col gap-1";
+                div.innerHTML = `
+                    <div class="text-[9px] font-bold text-slate-500 uppercase">${party}</div>
+                    <input type="color" value="${partyColors[party]}" class="w-full h-6 bg-transparent border-none cursor-pointer" 
+                        onchange="partyColors['${party}'] = this.value; saveStateToRepositoryCache(); compileElectionDashboardCalculations();">
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // System Clock Initialization
+        function startSystemClock() {
+            const clockEl = document.getElementById('systemClock');
+            setInterval(() => {
+                const now = new Date();
+                clockEl.textContent = now.toLocaleTimeString();
+            }, 1000);
+        }
+        startSystemClock();
 
         document.getElementById('adminElectionScope').addEventListener('change', function() {
             const wrapper = document.getElementById('adminScopeStateSelectWrapper');
@@ -1476,9 +2106,17 @@ document.getElementById('candProfileToggleCountyBtn').addEventListener('click', 
 
         // ================= VOTE ENTRY STATION ENGINE HOOKS =================
         document.getElementById('voteMgmtStateSelector').addEventListener('change', function() {
-            const cSel = document.getElementById('voteMgmtCountySelector'); cSel.innerHTML = '<option value="">-- Choose Target County --</option>';
+            const cSel = document.getElementById('voteMgmtCountySelector');
+            const frag = document.createDocumentFragment();
+            const opt = document.createElement('option'); opt.value = ""; opt.textContent = "-- Choose Target County --";
+            frag.appendChild(opt);
+            
             let filteredCounties = db.counties.filter(c => c.state === this.value);
-            filteredCounties.forEach(co => { cSel.innerHTML += `<option value="${co.id}">${co.county}</option>`; });
+            filteredCounties.forEach(co => { 
+                const o = document.createElement('option'); o.value = co.id; o.textContent = co.county;
+                frag.appendChild(o);
+            });
+            cSel.innerHTML = ''; cSel.appendChild(frag);
         });
 
         document.getElementById('voteMgmtCountySelector').addEventListener('change', function() {
@@ -1626,7 +2264,11 @@ document.getElementById('candProfileToggleCountyBtn').addEventListener('click', 
                 .data(geoStatesJson.features)
                 .join("path")
                 .attr("d", pathGen)
-                .attr("stroke", "#ffffff").attr("stroke-width", "0.5")
+                .attr("stroke", "#ffffff").attr("stroke-width", "0.5").style("cursor", "pointer")
+                .on("click", (e, d) => {
+                    let token = d.properties.name || "";
+                    drillDownTerritoryProfileView(token, 'state');
+                })
                 .attr("fill", function(d) {
                     let token = d.properties.name || "";
                     let match = db.states.find(s => s.name.toLowerCase() === token.toLowerCase());
@@ -1728,7 +2370,37 @@ function triggerCandidateImageUpdate(electionId, candidateId) {
 
 
         // START EXECUTION ON INITIALIZATION SEED PIPELINES
+        initializeCoreRepositoryEngine();
         loadAsynchronousResourceFiles();
     </script>
+<!-- TERMUX LOCAL STORAGE SYNC ENGINE -->
+<script>
+console.log("🛰️ Storage Sync Engine Loaded.");
+async function sendDataToPhoneStorage(payload) {
+    try {
+        const response = await fetch('http://127.0.0.1:5000/api/save-elections', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const result = await response.json();
+        if (result.status === 'success') {
+            alert('💾 SUCCESS! Data saved to elections_db.json on your phone.');
+        }
+    } catch (err) {
+        console.log('Termux server not running locally, skipping local save.');
+    }
+}
+
+document.addEventListener('click', function(e) {
+    if (e.target && (e.target.id === 'saveBtn' || e.target.innerText.toLowerCase().includes('save'))) {
+        const globalData = window.electionData || window.currentData || window.formData;
+        if (globalData) {
+            sendDataToPhoneStorage(globalData);
+        }
+    }
+});
+</script>
+
 </body>
-</html>
+    </html>
